@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import pager, icon, sent, txt %}
+
+{% block title %}Comments (Table B){% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <div>
+    <h1>Comments <span class="muted" style="font-weight:400">· Table B (3NF Entity)</span></h1>
+    <p>Individual viewer and customer comment records across all platforms, including 2,600+ real YouTube sentiment analyzer comments and multi-channel campaign feedback.</p>
+  </div>
+  <a class="btn noprint" href="{{ fq('export', name='comments') }}">{{ icon('dl') }} Export Comments CSV</a>
+</div>
+
+<form class="filterbar" method="get" style="margin-top:-6px; flex-wrap:wrap;">
+  {% for k,v in filters.items() %}<input type="hidden" name="{{k}}" value="{{v}}">{% endfor %}
+  <div style="flex: 2; min-width: 220px;">
+    <label for="q">Search comment text</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="e.g. quality, fabric, buy, price...">
+  </div>
+  <div>
+    <label for="sentiment">Sentiment</label>
+    <select id="sentiment" name="sentiment">
+      <option value="">All</option>
+      {% for s in opts['sentiment'] %}<option value="{{ s }}" {{ 'selected' if sel['sentiment']==s }}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="topic">Topic</label>
+    <select id="topic" name="topic">
+      <option value="">All</option>
+      {% for t in opts['topic'] %}<option value="{{ t }}" {{ 'selected' if sel['topic']==t }}>{{ t }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="intent">Purchase Intent</label>
+    <select id="intent" name="purchase_intent">
+      <option value="">All</option>
+      {% for i in opts['purchase_intent'] %}<option value="{{ i }}" {{ 'selected' if sel['purchase_intent']==i }}>{{ i }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="lang">Language</label>
+    <select id="lang" name="language_type">
+      <option value="">All</option>
+      {% for l in opts['language_type'] %}<option value="{{ l }}" {{ 'selected' if sel['language_type']==l }}>{{ l }}</option>{% endfor %}
+    </select>
+  </div>
+  <div style="display:flex; align-items:flex-end; gap:6px;">
+    <button class="btn primary">Apply</button>
+    {% if q or sel.values()|select|list %}<a class="btn sm" href="{{ url_for('comments_list') }}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<p class="muted small" style="margin: 12px 0 8px 0;">Showing <strong>{{ total|num }}</strong> matching comments</p>
+
+<div class="tablewrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 70px;">ID</th>
+        <th>Post / Video</th>
+        <th>Commenter</th>
+        <th style="min-width: 300px;">Comment Text</th>
+        <th>Sentiment</th>
+        <th class="num">Score</th>
+        <th>Topic</th>
+        <th>Intent</th>
+        <th class="num">Likes</th>
+        <th>Language</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in rows %}
+      <tr>
+        <td class="muted">{{ c.comment_id }}</td>
+        <td>
+          {% if c.post_id and c.post_id.startswith('YT-') %}
+            <a href="https://www.youtube.com/watch?v={{ c.post_id[3:] }}" target="_blank" rel="noopener" title="Open YouTube Video" style="color:#ef4444; font-weight:600;">
+              YouTube ad
+            </a>
+          {% else %}
+            <a href="{{ url_for('post_detail', post_id=c.post_id) }}">{{ c.post_id }}</a>
+          {% endif %}
+        </td>
+        <td style="font-weight:600; font-size:0.88rem; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          {{ c.commenter or 'Anonymous' }}
+        </td>
+        <td>
+          {{ txt(c.comment_text, q) }}
+        </td>
+        <td>{{ sent(c.sentiment) }}</td>
+        <td class="num" style="font-size:0.85rem; font-weight:600; color:{% if c.sentiment_score > 0 %}#059669{% elif c.sentiment_score < 0 %}#dc2626{% else %}var(--muted){% endif %};">
+          {{ "%.2f"|format(c.sentiment_score) if c.sentiment_score is not none else '—' }}
+        </td>
+        <td><span class="badge b-topic">{{ c.topic }}</span></td>
+        <td><span class="badge" style="background:var(--bg);">{{ c.purchase_intent }}</span></td>
+        <td class="num">{{ c.like_count|num if c.like_count is not none else '—' }}</td>
+        <td style="font-size:0.85rem; color:var(--muted);">{{ c.language_type }}</td>
+        <td style="font-size:0.82rem; color:var(--muted); white-space:nowrap;">
+          {{ (c.published_at|string)[:10] if c.published_at and (c.published_at|string) != 'nan' else '—' }}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="11" class="empty">No comments match the selected filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{{ pager(pg, pages, 'comments_list') }}
+{% endblock %}

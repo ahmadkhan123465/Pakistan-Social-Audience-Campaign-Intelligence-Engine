@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+
+{% block title %}Try the NLP Classifier{% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <div>
+    <h1>Interactive NLP Classifier <span class="muted" style="font-weight:400">· Real-Time Prediction</span></h1>
+    <p>
+      Test the sentiment classification, language detection (English, Urdu, Roman Urdu), topic identification,
+      purchase intent prediction, and audience segment assignment on any input text in real time.
+    </p>
+  </div>
+</div>
+
+<div class="card" style="padding: 24px; max-width: 800px; margin-bottom: 24px;">
+  <div style="margin-bottom: 16px;">
+    <label for="commentInput" style="display:block; font-weight:700; margin-bottom:6px; font-size:1rem;">
+      Enter a Viewer or Customer Comment
+    </label>
+    <textarea id="commentInput" rows="4" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.95rem; line-height:1.4;" placeholder="e.g. Yeh dress bht khubsurat hai fabric bohat soft hai I will definitely buy again!"></textarea>
+  </div>
+
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 20px;">
+    <button class="btn primary" onclick="analyzeText()">⚡ Classify Text</button>
+    <button class="btn sm" onclick="loadSample('Yeh dress bht khubsurat hai fabric bohat soft hai I will definitely buy again!')">Sample: Positive Roman Urdu</button>
+    <button class="btn sm" onclick="loadSample('Worst quality ever. Total waste of money, stitching came off after 1 wash!')">Sample: Negative English</button>
+    <button class="btn sm" onclick="loadSample('Bhai price kya hai aur delivery charges kitne hain Lahore k liye?')">Sample: Inquiry Intent</button>
+  </div>
+
+  <!-- Result Container -->
+  <div id="resultCard" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:20px;">
+    <h3 style="font-size:1.1rem; font-weight:700; margin:0 0 16px 0; border-bottom:1px solid var(--border); padding-bottom:8px;">
+      Classification Results
+    </h3>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
+      <div>
+        <span style="color:var(--muted); font-size:0.8rem; display:block;">PREDICTED SENTIMENT</span>
+        <strong id="resSentiment" style="font-size:1.1rem;"></strong>
+      </div>
+      <div>
+        <span style="color:var(--muted); font-size:0.8rem; display:block;">SENTIMENT SCORE</span>
+        <strong id="resScore" style="font-size:1.1rem;"></strong>
+      </div>
+      <div>
+        <span style="color:var(--muted); font-size:0.8rem; display:block;">LANGUAGE DETECTED</span>
+        <strong id="resLang" style="font-size:1.1rem;"></strong>
+      </div>
+      <div>
+        <span style="color:var(--muted); font-size:0.8rem; display:block;">TOPIC & THEME</span>
+        <strong id="resTopic" style="font-size:1.1rem;"></strong>
+      </div>
+      <div>
+        <span style="color:var(--muted); font-size:0.8rem; display:block;">PURCHASE INTENT</span>
+        <strong id="resIntent" style="font-size:1.1rem;"></strong>
+      </div>
+      <div>
+        <span style="color:var(--muted); font-size:0.8rem; display:block;">AUDIENCE SEGMENT</span>
+        <strong id="resSegment" style="font-size:1.1rem;"></strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadSample(text) {
+  document.getElementById('commentInput').value = text;
+  analyzeText();
+}
+
+async function analyzeText() {
+  const text = document.getElementById('commentInput').value.trim();
+  if (!text) return;
+
+  const card = document.getElementById('resultCard');
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Analysis failed");
+      return;
+    }
+
+    const sentEl = document.getElementById('resSentiment');
+    sentEl.innerText = data.sentiment;
+    sentEl.style.color = data.sentiment === 'Positive' ? '#059669' : (data.sentiment === 'Negative' ? '#dc2626' : 'var(--text)');
+
+    document.getElementById('resScore').innerText = data.sentiment_score.toFixed(2);
+    document.getElementById('resLang').innerText = data.language_type;
+    document.getElementById('resTopic').innerText = data.topic + ' (' + data.theme + ')';
+    document.getElementById('resIntent').innerText = data.purchase_intent;
+    document.getElementById('resSegment').innerText = data.segment ? data.segment.name : 'Unassigned';
+
+    card.style.display = 'block';
+  } catch (err) {
+    alert("Error communicating with classification API");
+  }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, chart, sent, txt %}
+
+{% block title %}YouTube Sentiment Intelligence (Real Data){% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <div>
+    <h1>YouTube Sentiment Intelligence <span class="muted" style="font-weight:400">· Real Scraped Data</span></h1>
+    <p>
+      Live analytical intelligence on <strong>{{ kp.n|num }}</strong> real YouTube viewer comments scraped and classified
+      from the YouTube Comment Sentiment Analyzer (Project 2). Video: <em>Gillette Campaign ("The Best Men Can Be")</em>.
+    </p>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <a href="https://www.youtube.com/watch?v=UYaY2Kb_PKI" target="_blank" rel="noopener" class="btn sm" style="background:#ef4444; color:#fff; display:inline-flex; align-items:center; gap:6px;">
+      ▶ Watch Video on YouTube
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom: 24px;">
+  <div class="card kpi">
+    <div class="l">Scraped Comments</div>
+    <div class="v" style="color: #2563eb;">{{ kp.n|num }}</div>
+    <div class="s">{{ kp.people|num }} unique authors</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Negative Sentiment</div>
+    <div class="v" style="color: #dc2626;">{{ "%.1f"|format(kp.neg * 100) }}%</div>
+    <div class="s">Strong commercial backlash</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Positive Sentiment</div>
+    <div class="v" style="color: #059669;">{{ "%.1f"|format(kp.pos * 100) }}%</div>
+    <div class="s">Supportive brand feedback</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Mean Sentiment Score</div>
+    <div class="v" style="color: {% if kp.score < 0 %}#dc2626{% else %}#059669{% endif %};">
+      {{ "%.2f"|format(kp.score) }}
+    </div>
+    <div class="s">Scale: -1.0 (neg) to +1.0 (pos)</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Viewer Agreement (Likes)</div>
+    <div class="v" style="color: #8b5cf6;">{{ kp.likes|num }}</div>
+    <div class="s">Total likes on comments</div>
+  </div>
+</div>
+
+<!-- Interactive Charts Grid -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 20px; margin-bottom: 28px;">
+  
+  <div class="card" style="padding: 20px;">
+    <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0;">Sentiment Distribution</h3>
+    <p style="color: var(--muted); font-size: 0.85rem; margin: 0 0 16px 0;">
+      Breakdown of negative (71.9%), neutral (14.2%), and positive (13.9%) viewer reactions.
+    </p>
+    {{ chart('yt_dist', charts.dist) }}
+  </div>
+
+  <div class="card" style="padding: 20px;">
+    <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0;">Sentiment Over Time (By Year)</h3>
+    <p style="color: var(--muted); font-size: 0.85rem; margin: 0 0 16px 0;">
+      Comment volume and sentiment evolution across calendar years since video launch.
+    </p>
+    {{ chart('yt_year', charts.year) }}
+  </div>
+
+  <div class="card" style="padding: 20px;">
+    <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0;">Sentiment Polarity Score Distribution</h3>
+    <p style="color: var(--muted); font-size: 0.85rem; margin: 0 0 16px 0;">
+      Binned compound sentiment scores highlighting the bimodal concentration around strong negatives (-0.8 to -0.4).
+    </p>
+    {{ chart('yt_hist', charts.hist) }}
+  </div>
+
+  <div class="card" style="padding: 20px;">
+    <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0;">Average Consensus (Likes per Sentiment)</h3>
+    <p style="color: var(--muted); font-size: 0.85rem; margin: 0 0 16px 0;">
+      Negative comments attract significantly higher peer agreement and like ratios than positive ones.
+    </p>
+    {{ chart('yt_likes', charts.likes) }}
+  </div>
+
+</div>
+
+<!-- Top Keywords by Sentiment -->
+<div class="card" style="padding: 24px; margin-bottom: 28px;">
+  <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">💬 Top Consumer Reaction Keywords</h2>
+  <p style="color: var(--muted); margin: 0 0 16px 0; font-size: 0.9rem;">
+    Most frequent content tokens extracted per sentiment category after filtering common English stopwords.
+  </p>
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+    {% for s in order %}
+    <div style="background: var(--bg); padding: 16px; border-radius: 8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+        <span style="font-weight: 700;">{{ s }} Lexicon</span>
+        {{ sent(s) }}
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px;">
+        {% for word, count in words[s].items() %}
+        <span class="badge" style="background: var(--card); border: 1px solid var(--border); font-size:0.85rem;">
+          {{ word }} <span style="color:var(--muted); font-weight:400;">({{ count }})</span>
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Top-Liked Comments Table -->
+<div class="card" style="padding: 24px; margin-bottom: 28px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 16px;">
+    <div>
+      <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">🔥 High-Consensus Comments (Top Liked)</h2>
+      <p style="color: var(--muted); margin: 0; font-size: 0.9rem;">
+        The viewer feedback carrying the greatest community agreement and consensus signals.
+      </p>
+    </div>
+    <a href="{{ url_for('comments_list', q='gillette') }}" class="btn sm">View All in Table B →</a>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Author</th>
+          <th style="min-width: 400px;">Comment Text</th>
+          <th>Sentiment</th>
+          <th class="num">Score</th>
+          <th class="num">Likes</th>
+          <th class="num">Replies</th>
+          <th>Published</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in top %}
+        <tr>
+          <td style="font-weight: 700; white-space: nowrap;">{{ c.commenter or 'Anonymous' }}</td>
+          <td>{{ c.comment_text }}</td>
+          <td>{{ sent(c.sentiment) }}</td>
+          <td class="num" style="font-weight:600; color:{% if c.sentiment_score > 0 %}#059669{% elif c.sentiment_score < 0 %}#dc2626{% else %}var(--muted){% endif %};">
+            {{ "%.2f"|format(c.sentiment_score) }}
+          </td>
+          <td class="num" style="font-weight:700; color:#2563eb;">{{ c.like_count|num }}</td>
+          <td class="num">{{ c.reply_count|num }}</td>
+          <td style="color: var(--muted); font-size:0.82rem; white-space: nowrap;">{{ c.published_at[:10] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import chart, icon, sent, txt %}
+
+{% block title %}Post {{ p.post_id }}{% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <div>
+    <a href="{{ url_for('posts_list') }}" class="muted small" style="display:inline-block; margin-bottom:6px;">← Back to Posts (Table A)</a>
+    <h1>Post Details: <span style="color:#2563eb;">{{ p.post_id }}</span></h1>
+    <p>Campaign: <strong>{{ p.campaign }}</strong> · Brand: <strong>{{ p.brand }}</strong> · Platform: <strong>{{ p.platform }}</strong> ({{ p.content_type }})</p>
+  </div>
+  {% if p.post_id and p.post_id.startswith('YT-') %}
+  <a href="https://www.youtube.com/watch?v={{ p.post_id[3:] }}" target="_blank" rel="noopener" class="btn sm" style="background:#ef4444; color:#fff;">
+    ▶ Open Video on YouTube
+  </a>
+  {% endif %}
+</div>
+
+<!-- Metrics Summary -->
+<div class="kpi-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom: 24px;">
+  <div class="card kpi">
+    <div class="l">Likes</div>
+    <div class="v">{{ p.likes|num }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Comments Count</div>
+    <div class="v">{{ p.comments_count|num }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Shares</div>
+    <div class="v">{{ p.shares|num if p.shares == p.shares else '—' }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Views</div>
+    <div class="v">{{ p.views|num if p.views == p.views else '—' }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Engagement Rate</div>
+    <div class="v" style="color:#059669;">{{ "%.2f"|format(p.engagement_rate) if p.engagement_rate == p.engagement_rate else '—' }}%</div>
+  </div>
+</div>
+
+{% if p.anomaly_type %}
+<div class="card" style="padding: 16px; margin-bottom: 24px; border-left: 4px solid #ef4444; background: var(--bg);">
+  <strong style="color: #dc2626; display:block; margin-bottom:4px;">⚠️ Flagged Engagement Anomaly: {{ p.anomaly_type }}</strong>
+  <p style="margin:0; font-size:0.9rem; color:var(--text);">{{ p.reason }}</p>
+</div>
+{% endif %}
+
+<!-- Post Comments Table -->
+<div class="card" style="padding: 24px;">
+  <h2 style="font-size: 1.2rem; font-weight: 700; margin: 0 0 4px 0;">💬 Audience Comments on this Post ({{ n_comments|num }})</h2>
+  <p style="color:var(--muted); font-size:0.88rem; margin:0 0 16px 0;">Showing comments ordered by like consensus.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Commenter</th>
+          <th style="min-width:350px;">Comment Text</th>
+          <th>Sentiment</th>
+          <th class="num">Score</th>
+          <th>Topic</th>
+          <th class="num">Likes</th>
+          <th>Published</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cm %}
+        <tr>
+          <td style="font-weight:600; white-space:nowrap;">{{ c.commenter or 'Anonymous' }}</td>
+          <td>{{ c.comment_text }}</td>
+          <td>{{ sent(c.sentiment) }}</td>
+          <td class="num">{{ "%.2f"|format(c.sentiment_score) if c.sentiment_score is not none else '—' }}</td>
+          <td><span class="badge b-topic">{{ c.topic }}</span></td>
+          <td class="num">{{ c.like_count|num if c.like_count is not none else '—' }}</td>
+          <td style="color:var(--muted); font-size:0.82rem; white-space:nowrap;">{{ (c.published_at|string)[:10] if c.published_at and (c.published_at|string) != 'nan' else '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty">No comments found for this post.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

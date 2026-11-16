@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+
+{% block title %}Database & SQL Explorer (3NF Schema){% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <div>
+    <h1>Database & SQL Explorer <span class="muted" style="font-weight:400">· 1NF, 2NF & 3NF Normalized Schema</span></h1>
+    <p>
+      Direct relational interface to <code>campaign.db</code> (SQLite). All entities are normalized to Third Normal Form (3NF).
+      Derived metrics (engagement rate, totals, peer groups) are computed via SQL views and dynamic queries rather than stored columns.
+    </p>
+  </div>
+</div>
+
+<!-- Schema Normalization Overview -->
+<div class="card" style="padding: 20px; margin-bottom: 24px;">
+  <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0 0 8px 0;">Relational Normalization Guarantees</h2>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+    <div style="background:var(--bg); padding:14px; border-radius:8px;">
+      <span class="badge" style="background:#2563eb; color:#fff; margin-bottom:6px;">1NF (First Normal Form)</span>
+      <p style="font-size:0.85rem; color:var(--muted); margin:0;">
+        All table columns contain purely atomic values. No repeating groups or arrays. Every table enforces a unique Primary Key.
+      </p>
+    </div>
+    <div style="background:var(--bg); padding:14px; border-radius:8px;">
+      <span class="badge" style="background:#059669; color:#fff; margin-bottom:6px;">2NF (Second Normal Form)</span>
+      <p style="font-size:0.85rem; color:var(--muted); margin:0;">
+        No partial functional dependencies. Every non-key attribute is fully functionally dependent on the entire primary key.
+      </p>
+    </div>
+    <div style="background:var(--bg); padding:14px; border-radius:8px;">
+      <span class="badge" style="background:#8b5cf6; color:#fff; margin-bottom:6px;">3NF (Third Normal Form)</span>
+      <p style="font-size:0.85rem; color:var(--muted); margin:0;">
+        No transitive functional dependencies (X → Y → Z). Lookups (platform, brand, topic, sentiment, language) are decoupled into dimension tables.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive SQL Query Runner -->
+<div class="card" style="padding: 24px; margin-bottom: 28px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 12px;">
+    <div>
+      <h2 style="font-size: 1.2rem; font-weight: 700; margin: 0 0 4px 0;">⚡ Live SQL Console</h2>
+      <p style="color: var(--muted); margin: 0; font-size: 0.88rem;">
+        Execute custom read queries or select an optimized sample query from the dropdown.
+      </p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <label for="exampleSelect" style="font-size:0.85rem; font-weight:600; color:var(--muted);">Load Preset:</label>
+      <select id="exampleSelect" style="padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.85rem;">
+        <option value="">-- Choose Example Query --</option>
+        {% for name, q in examples %}
+        <option value="{{ q }}">{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 12px;">
+    <textarea id="sqlInput" rows="5" style="width:100%; font-family:Consolas, monospace; font-size:0.92rem; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); line-height:1.4;" placeholder="SELECT * FROM v_post_flat LIMIT 10;">{{ examples[0][1] }}</textarea>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+    <button id="runBtn" class="btn primary" onclick="executeSql()">
+      ▶ Run SQL Query
+    </button>
+    <span id="queryStatus" style="font-size:0.85rem; color:var(--muted);"></span>
+  </div>
+
+  <!-- Results Table Container -->
+  <div id="resultsWrap" style="margin-top: 18px; display: none;">
+    <div class="tablewrap" style="max-height: 420px; overflow-y: auto;">
+      <table class="table" id="resultsTable">
+        <thead id="resultsHead"></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Database Tables & Entities Explorer -->
+<div class="card" style="padding: 24px;">
+  <div style="margin-bottom: 16px;">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">🗂 Database Tables & Foreign Key Schema</h2>
+    <p style="color: var(--muted); margin: 0; font-size: 0.9rem;">
+      Live entity dictionary retrieved directly from SQLite metadata via <code>PRAGMA table_info</code> and <code>PRAGMA foreign_key_list</code>.
+    </p>
+  </div>
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px;">
+    {% for t in tables %}
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <span style="font-weight: 700; font-size: 1.05rem; font-family: Consolas, monospace; color: var(--text);">
+          {{ t.name }}
+        </span>
+        <span class="badge" style="background: var(--card); font-weight: 600;">
+          {{ t.rows|num }} rows
+        </span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:4px; font-size: 0.83rem;">
+        {% for c in t.cols %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: 2px 0;">
+          <span>
+            <strong style="color: var(--text);">{{ c.name }}</strong>
+            <span style="color: var(--muted); font-size: 0.78rem;">({{ c.type }})</span>
+            {% if c.pk %}<span class="badge" style="background:#fbbf24; color:#78350f; font-size:0.7rem; padding:1px 4px;">PK</span>{% endif %}
+            {% if c.nn %}<span class="badge" style="background:var(--border); font-size:0.7rem; padding:1px 4px;">NOT NULL</span>{% endif %}
+          </span>
+          {% if c.fk %}
+          <span style="color: #2563eb; font-size:0.78rem;" title="Foreign key to {{ c.fk }}">
+            → {{ c.fk }}
+          </span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- SQL Views -->
+  <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+    <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 8px 0;">Normalized Read Models (SQL Views)</h3>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      {% for v in views %}
+      <div style="background: var(--bg); padding: 8px 14px; border-radius: 6px; font-family: Consolas, monospace; font-size: 0.9rem;">
+        <strong>VIEW:</strong> {{ v }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('exampleSelect').addEventListener('change', function(e) {
+  if (e.target.value) {
+    document.getElementById('sqlInput').value = e.target.value;
+  }
+});
+
+async function executeSql() {
+  const sql = document.getElementById('sqlInput').value.trim();
+  const statusEl = document.getElementById('queryStatus');
+  const wrap = document.getElementById('resultsWrap');
+  const thead = document.getElementById('resultsHead');
+  const tbody = document.getElementById('resultsBody');
+
+  if (!sql) return;
+
+  statusEl.innerText = "Executing query...";
+  statusEl.style.color = "var(--muted)";
+
+  try {
+    const res = await fetch('/api/sql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      statusEl.innerText = "❌ " + (data.error || "Query failed");
+      statusEl.style.color = "#dc2626";
+      return;
+    }
+
+    statusEl.innerText = `✅ Query executed successfully. ${data.rows.length} rows returned.`;
+    statusEl.style.color = "#059669";
+
+    // Build Table
+    thead.innerHTML = "";
+    tbody.innerHTML = "";
+
+    const trH = document.createElement('tr');
+    data.columns.forEach(col => {
+      const th = document.createElement('th');
+      th.innerText = col;
+      trH.appendChild(th);
+    });
+    thead.appendChild(trH);
+
+    data.rows.forEach(row => {
+      const trB = document.createElement('tr');
+      row.forEach(val => {
+        const td = document.createElement('td');
+        td.innerText = (val === null || val === undefined) ? 'NULL' : val;
+        trB.appendChild(td);
+      });
+      tbody.appendChild(trB);
+    });
+
+    wrap.style.display = "block";
+  } catch (err) {
+    statusEl.innerText = "❌ Network error executing query";
+    statusEl.style.color = "#dc2626";
+  }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+
+{% block title %}Methodology & Data Provenance{% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <div>
+    <h1>Methodology & Data Provenance <span class="muted" style="font-weight:400">· System Documentation</span></h1>
+    <p>Comprehensive overview of data generation pipelines, 1NF/2NF/3NF schema modeling, machine learning clustering, sentiment classification, and budget optimization engines.</p>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-bottom: 24px;">
+
+  <div class="card" style="padding: 20px;">
+    <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0 0 10px 0;">📦 Data Sources & Provenance</h2>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      {% for s in src %}
+      <div style="background:var(--bg); padding:12px; border-radius:8px; border:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <strong style="font-size:0.95rem;">{{ s.source_name }}</strong>
+          <span class="badge {{ 'b-pos' if s.provenance=='observed' else 'b-topic' }}">{{ s.provenance }}</span>
+        </div>
+        <p style="font-size:0.83rem; color:var(--muted); margin:0 0 6px 0;">{{ s.reuse_permission }}</p>
+        <div style="font-size:0.8rem; color:var(--muted); display:flex; justify-content:space-between;">
+          <span>Collected: {{ s.collected_on }}</span>
+          <span><strong>{{ s.posts|num }}</strong> posts recorded</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card" style="padding: 20px;">
+    <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0 0 10px 0;">🧠 Machine Learning & NLP Pipeline</h2>
+    <ul style="font-size:0.88rem; color:var(--text); line-height:1.6; margin:0; padding-left:18px;">
+      <li><strong>Sentiment Polarity:</strong> Hybrid rule-based & VADER classifier with support for Roman Urdu phrases (*"paisa wasool"*, *"kya product hai"*, *"bekaar"*).</li>
+      <li><strong>Audience Clustering:</strong> TF-IDF feature extraction combined with Truncated SVD dimensionality reduction and K-Means clustering.</li>
+      <li><strong>Anomaly Detection:</strong> Isolation Forest algorithm to detect engagement anomalies, viral spikes, and irregular comment velocity.</li>
+      <li><strong>Response Curves:</strong> Concave power-law regressions (<code>Revenue = a · Spend<sup>b</sup></code>) with bisection marginal return solver.</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- System Metadata -->
+<div class="card" style="padding: 20px;">
+  <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0 0 12px 0;">⚙️ Execution & Model Run Metadata</h2>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; font-size:0.88rem;">
+    {% for k, v in meta.items() %}
+    <div style="background:var(--bg); padding:10px 14px; border-radius:6px;">
+      <span style="color:var(--muted); display:block; font-size:0.78rem; text-transform:uppercase;">{{ k|replace('_',' ') }}</span>
+      <strong style="color:var(--text); font-size:0.95rem;">{{ v }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, kpi %}
+
+{% block title %}Ad Budget Optimizer & Big Data Analytics{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+    <div>
+      <h1 style="font-size: 1.75rem; font-weight: 700; margin: 0 0 6px 0; color: var(--text);">
+        📊 Digital Advertising Budget Optimizer
+      </h1>
+      <p style="color: var(--muted); margin: 0; font-size: 0.95rem; max-width: 800px;">
+        Algorithmic budget allocation under power-law diminishing returns response curves (<code style="font-size:0.88em;">Revenue = a · Spend<sup>b</sup></code>),
+        cross-platform marketing KPI intelligence, and multi-engine big data processing benchmarks.
+      </p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('export_budget') }}" class="btn sm" style="display:inline-flex; align-items:center; gap:6px;">
+        {{ icon('dl') }} Export Recommendation CSV
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:16px; margin-bottom: 28px;">
+  <div class="card kpi">
+    <div class="l">Analyzed Dataset Scale</div>
+    <div class="v" style="color: #2563eb;">10,000,000</div>
+    <div class="s">Multi-channel campaign records</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Baseline Modeled ROAS</div>
+    <div class="v" style="color: #059669;">{{ "%.2f"|format(summary.current_modeled_roas) }}×</div>
+    <div class="s">Historical blended return on ad spend</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Optimization Revenue Uplift</div>
+    <div class="v" style="color: #10b981;">+{{ "%.2f"|format(summary.uplift_vs_compliant_baseline_pct) }}%</div>
+    <div class="s">Over limit-compliant baseline</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Top Efficiency Platform</div>
+    <div class="v" style="color: #8b5cf6;">Google (3.84×)</div>
+    <div class="s">Highest conversion rate & ROAS</div>
+  </div>
+  <div class="card kpi">
+    <div class="l">Prime Growth Opportunity</div>
+    <div class="v" style="color: #f59e0b;">Facebook (0.87)</div>
+    <div class="s">Highest spend elasticity (b)</div>
+  </div>
+</div>
+
+<!-- Interactive Budget Allocation Simulator -->
+<div class="card" style="padding: 24px; margin-bottom: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 16px;">
+    <div>
+      <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">⚡ Live Campaign Budget Split Simulator</h2>
+      <p style="color: var(--muted); margin: 0; font-size: 0.9rem;">
+        Adjust the total advertising budget to dynamically compute the mathematically optimal platform split under diminishing returns.
+      </p>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-weight: 600; font-size: 0.9rem;">Currency:</span>
+      <span class="badge" style="background: var(--bg); font-weight: 700; font-size: 0.85rem;">Rs. (PKR)</span>
+    </div>
+  </div>
+
+  <div style="display:flex; gap: 20px; align-items:center; flex-wrap:wrap; background: var(--bg); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+    <div style="flex: 1; min-width: 250px;">
+      <label for="budgetSlider" style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px; color:var(--muted);">
+        Drag Slider (Rs. 100,000 – Rs. 10,000,000)
+      </label>
+      <input type="range" id="budgetSlider" min="100000" max="10000000" step="50000" value="1000000" style="width: 100%; cursor: pointer;">
+    </div>
+    <div style="min-width: 200px;">
+      <label for="budgetInput" style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px; color:var(--muted);">
+        Or Enter Exact Total Budget
+      </label>
+      <div style="position:relative;">
+        <span style="position:absolute; left:12px; top:8px; font-weight:700; color:var(--muted);">Rs.</span>
+        <input type="number" id="budgetInput" min="10000" step="10000" value="1000000" style="width: 100%; padding: 8px 12px 8px 40px; border-radius: 6px; border: 1px solid var(--border); font-size: 1rem; font-weight: 700; background: var(--card); color: var(--text);">
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <button class="btn sm" onclick="resetBudget(1000000)" style="margin-top: 18px;">Reset to 1M</button>
+    </div>
+  </div>
+
+  <!-- Dynamic Allocation Table -->
+  <div class="table-wrap" style="overflow-x:auto;">
+    <table class="table" style="width:100%; font-size: 0.9rem;">
+      <thead>
+        <tr style="background: var(--bg);">
+          <th>Platform</th>
+          <th>Policy Limits</th>
+          <th>Recommended Share</th>
+          <th style="text-align:right;">Allocated Amount</th>
+          <th>Marginal ROAS</th>
+          <th>Elasticity (b)</th>
+          <th>Strategic Rationale</th>
+        </tr>
+      </thead>
+      <tbody id="allocationTableBody">
+        <!-- Rendered via JS -->
+      </tbody>
+      <tfoot>
+        <tr style="font-weight:700; background: var(--bg); border-top: 2px solid var(--border);">
+          <td colspan="2">Total Optimized Split</td>
+          <td>100.0%</td>
+          <td id="totalAllocated" style="text-align:right; color:#2563eb; font-size:1.05rem;">Rs. 1,000,000</td>
+          <td colspan="3" style="color: #059669;" id="projectedGain">Projected Uplift: +4.22% vs limit-compliant baseline</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- Auto-Generated Visualization Charts Section -->
+<div style="margin-bottom: 28px;">
+  <div style="margin-bottom: 16px;">
+    <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0 0 4px 0;">📈 Analytical Charts & Response Curves</h2>
+    <p style="color: var(--muted); margin: 0; font-size: 0.9rem;">
+      High-resolution visualizations auto-generated by the pipeline for marketing leadership reporting.
+    </p>
+  </div>
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 20px;">
+    
+    <!-- Chart 1: ROAS by Platform -->
+    <div class="card" style="padding: 18px; border: 1px solid var(--border); border-radius: 10px;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 4px 0;">1. Return on Ad Spend (ROAS) by Platform</h3>
+      <p style="color: var(--muted); font-size: 0.82rem; margin: 0 0 12px 0;">
+        Direct efficiency comparison: Google delivers the highest ROAS (3.84×) followed by Facebook (2.67×).
+      </p>
+      <div style="background: var(--bg); border-radius: 8px; padding: 8px; text-align: center;">
+        <img src="{{ url_for('static', filename='charts/01_roas_by_platform.png') }}" alt="ROAS by Platform" style="max-width: 100%; height: auto; border-radius: 6px; cursor: pointer;" onclick="window.open(this.src)">
+      </div>
+    </div>
+
+    <!-- Chart 2: Spend vs Revenue -->
+    <div class="card" style="padding: 18px; border: 1px solid var(--border); border-radius: 10px;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 4px 0;">2. Total Campaign Spend vs Revenue</h3>
+      <p style="color: var(--muted); font-size: 0.82rem; margin: 0 0 12px 0;">
+        Volume contribution: Google and Facebook represent 67% of ad spend and over 80% of generated revenue.
+      </p>
+      <div style="background: var(--bg); border-radius: 8px; padding: 8px; text-align: center;">
+        <img src="{{ url_for('static', filename='charts/02_spend_vs_revenue.png') }}" alt="Spend vs Revenue" style="max-width: 100%; height: auto; border-radius: 6px; cursor: pointer;" onclick="window.open(this.src)">
+      </div>
+    </div>
+
+    <!-- Chart 3: Budget Share Current vs Recommended -->
+    <div class="card" style="padding: 18px; border: 1px solid var(--border); border-radius: 10px;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 4px 0;">3. Budget Share: Current vs. Recommended</h3>
+      <p style="color: var(--muted); font-size: 0.82rem; margin: 0 0 12px 0;">
+        Strategic reallocation: Capital shifts from Google (over-concentrated at 50%) to Facebook (+22.5pp growth).
+      </p>
+      <div style="background: var(--bg); border-radius: 8px; padding: 8px; text-align: center;">
+        <img src="{{ url_for('static', filename='charts/03_budget_share_current_vs_recommended.png') }}" alt="Budget Share Current vs Recommended" style="max-width: 100%; height: auto; border-radius: 6px; cursor: pointer;" onclick="window.open(this.src)">
+      </div>
+    </div>
+
+    <!-- Chart 4: Response Curves -->
+    <div class="card" style="padding: 18px; border: 1px solid var(--border); border-radius: 10px;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 4px 0;">4. Fitted Diminishing Return Response Curves</h3>
+      <p style="color: var(--muted); font-size: 0.82rem; margin: 0 0 12px 0;">
+        Concave power-law models (<code style="font-size:0.85em;">Revenue = a · Spend<sup>b</sup></code>). The optimizer equalizes marginal revenue across non-saturated channels.
+      </p>
+      <div style="background: var(--bg); border-radius: 8px; padding: 8px; text-align: center;">
+        <img src="{{ url_for('static', filename='charts/04_response_curves.png') }}" alt="Fitted Response Curves" style="max-width: 100%; height: auto; border-radius: 6px; cursor: pointer;" onclick="window.open(this.src)">
+      </div>
+    </div>
+
+    <!-- Chart 5: Monthly Revenue Breakdown -->
+    <div class="card" style="padding: 18px; border: 1px solid var(--border); border-radius: 10px; grid-column: 1 / -1;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 4px 0;">5. Historical Monthly Revenue Breakdown across Platforms</h3>
+      <p style="color: var(--muted); font-size: 0.82rem; margin: 0 0 12px 0;">
+        Temporal pattern showing consistent baseline revenue with pronounced fourth-quarter (Q4) commercial demand spikes.
+      </p>
+      <div style="background: var(--bg); border-radius: 8px; padding: 8px; text-align: center;">
+        <img src="{{ url_for('static', filename='charts/05_monthly_revenue_by_platform.png') }}" alt="Monthly Revenue by Platform" style="max-width: 100%; height: auto; border-radius: 6px; cursor: pointer;" onclick="window.open(this.src)">
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Detailed Platform Marketing KPIs Table -->
+<div class="card" style="padding: 24px; margin-bottom: 28px; border: 1px solid var(--border); border-radius: 12px;">
+  <div style="margin-bottom: 16px;">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">📋 Cross-Platform Marketing KPIs (10M Records Simulation)</h2>
+    <p style="color: var(--muted); margin: 0; font-size: 0.9rem;">
+      Calculated from aggregated campaign totals to eliminate Simpson's paradox across 10,000,000 multi-channel transaction records.
+    </p>
+  </div>
+
+  <div class="table-wrap" style="overflow-x:auto;">
+    <table class="table" style="width:100%; font-size: 0.9rem;">
+      <thead>
+        <tr style="background: var(--bg);">
+          <th>Platform</th>
+          <th style="text-align:right;">Impressions</th>
+          <th style="text-align:right;">Clicks</th>
+          <th style="text-align:right;">Total Spend</th>
+          <th style="text-align:right;">Conversions</th>
+          <th style="text-align:right;">Total Revenue</th>
+          <th style="text-align:right;">CTR</th>
+          <th style="text-align:right;">CPC</th>
+          <th style="text-align:right;">CPA</th>
+          <th style="text-align:right;">Conv. Rate</th>
+          <th style="text-align:right;">ROAS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for k in kpis %}
+        <tr>
+          <td style="font-weight: 700;">{{ k.platform }}</td>
+          <td style="text-align:right;">{{ k.impressions|compact }}</td>
+          <td style="text-align:right;">{{ k.clicks|compact }}</td>
+          <td style="text-align:right;">Rs. {{ k.spend|compact }}</td>
+          <td style="text-align:right;">{{ k.conversions|compact }}</td>
+          <td style="text-align:right; font-weight:600;">Rs. {{ k.revenue|compact }}</td>
+          <td style="text-align:right;">{{ "%.2f"|format(k.ctr_pct) }}%</td>
+          <td style="text-align:right;">Rs. {{ "%.2f"|format(k.cpc) }}</td>
+          <td style="text-align:right;">Rs. {{ "%.2f"|format(k.cpa) }}</td>
+          <td style="text-align:right;">{{ "%.2f"|format(k.conversion_rate_pct) }}%</td>
+          <td style="text-align:right; font-weight:700; color: {% if k.roas > 3 %}#059669{% elif k.roas > 2 %}#2563eb{% else %}#d97706{% endif %};">
+            {{ "%.2f"|format(k.roas) }}×
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Multi-Engine Benchmark Table -->
+<div class="card" style="padding: 24px; margin-bottom: 28px; border: 1px solid var(--border); border-radius: 12px;">
+  <div style="margin-bottom: 16px;">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">⚡ Big Data Processing Engine Benchmarks</h2>
+    <p style="color: var(--muted); margin: 0; font-size: 0.9rem;">
+      Execution speed, startup latency, and peak memory profiling across Pandas, Simulated MapReduce (multiprocessing byte splits), and PySpark.
+    </p>
+  </div>
+
+  <div class="table-wrap" style="overflow-x:auto;">
+    <table class="table" style="width:100%; font-size: 0.9rem;">
+      <thead>
+        <tr style="background: var(--bg);">
+          <th>Scale</th>
+          <th>Engine</th>
+          <th style="text-align:right;">Processing Time</th>
+          <th style="text-align:right;">Startup Time</th>
+          <th style="text-align:right;">Peak Memory (PSS)</th>
+          <th>Consistency</th>
+          <th>Relative Speed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in benchmarks %}
+        <tr>
+          <td style="font-weight:600;">{{ b.records|num }} rows</td>
+          <td style="font-weight:700;">
+            <span class="badge" style="{% if b.engine == 'pandas' %}background:#e0f2fe; color:#0369a1;{% elif b.engine == 'mapreduce' %}background:#fef3c7; color:#92400e;{% else %}background:#f3e8ff; color:#6b21a8;{% endif %}">
+              {{ b.engine }}
+            </span>
+          </td>
+          <td style="text-align:right; font-weight:600;">{{ "%.2f"|format(b.seconds) }} s</td>
+          <td style="text-align:right; color:var(--muted);">{{ "%.2f"|format(b.startup_seconds) }} s</td>
+          <td style="text-align:right; font-weight:600;">{{ "%.0f"|format(b.peak_mem_mb) }} MB</td>
+          <td><span class="badge b-pos">{{ b.consistent }}</span></td>
+          <td style="color:var(--muted);">{{ b.vs_pandas }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const rawRecs = {{ recs|tojson }};
+
+function formatCurrency(val) {
+  return "Rs. " + Math.round(val).toLocaleString();
+}
+
+function updateAllocation(totalBudget) {
+  const tbody = document.getElementById("allocationTableBody");
+  tbody.innerHTML = "";
+  
+  let sumAlloc = 0;
+  rawRecs.forEach(r => {
+    const allocAmount = (totalBudget * (r.recommended_share_pct / 100));
+    sumAlloc += allocAmount;
+    
+    let rationale = "";
+    if (r.platform === "Facebook") rationale = "Prime growth elasticity (b = 0.87); captures +22.5pp budget share.";
+    else if (r.platform === "Google") rationale = "Held at 40% maximum policy constraint to prevent over-concentration.";
+    else if (r.platform === "TikTok") rationale = "Bounded by 5% minimum policy floor constraint.";
+    else if (r.platform === "Instagram") rationale = "Rebalanced down to 6.9% due to elevated CPA (Rs. 38.81).";
+    else if (r.platform === "YouTube") rationale = "Sustained engagement allocation at 8.1% share.";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="font-weight:700;">${r.platform}</td>
+      <td style="color:var(--muted); font-size:0.85rem;">5.0% – 40.0%</td>
+      <td>
+        <span style="font-weight:700; color:#2563eb;">${r.recommended_share_pct.toFixed(1)}%</span>
+        <span style="font-size:0.8rem; color:${r.change_pp >= 0 ? '#059669':'#dc2626'}; margin-left:4px;">
+          (${r.change_pp >= 0 ? '+' : ''}${r.change_pp.toFixed(1)}pp)
+        </span>
+      </td>
+      <td style="text-align:right; font-weight:700; font-size:0.95rem;">${formatCurrency(allocAmount)}</td>
+      <td style="color:#059669; font-weight:600;">${r.marginal_roas.toFixed(2)}×</td>
+      <td>${r.elasticity.toFixed(2)}</td>
+      <td style="font-size:0.85rem; color:var(--muted);">${rationale}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("totalAllocated").innerText = formatCurrency(sumAlloc);
+  document.getElementById("budgetInput").value = Math.round(totalBudget);
+  document.getElementById("budgetSlider").value = Math.round(totalBudget);
+}
+
+function resetBudget(val) {
+  updateAllocation(val);
+}
+
+document.getElementById("budgetSlider").addEventListener("input", function(e) {
+  updateAllocation(parseFloat(e.target.value));
+});
+
+document.getElementById("budgetInput").addEventListener("change", function(e) {
+  let val = parseFloat(e.target.value);
+  if (isNaN(val) || val <= 0) val = 1000000;
+  updateAllocation(val);
+});
+
+// Initial run
+updateAllocation(1000000);
+</script>
+{% endblock %}
+
