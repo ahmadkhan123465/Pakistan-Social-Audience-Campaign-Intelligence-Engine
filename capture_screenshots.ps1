@@ -24,3 +24,4 @@ foreach ($p in $pages) {
 
 Write-Host "All screenshots captured successfully!"
 Get-ChildItem $outDir
+
