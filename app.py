@@ -13,7 +13,7 @@ st.set_page_config(page_title="Campaign Intelligence Engine", layout="wide")
 @st.cache_data
 def get_data():
     return load_data()
-
+ 
 
 @st.cache_data
 def get_anomalies(df, contamination):
