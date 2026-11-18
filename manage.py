@@ -11,7 +11,7 @@ import argparse, sys
 from campaign_engine import config, pipeline, database as db
 
 
-def main():
+def main(): 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("setup"); s.add_argument("--posts", type=int, default=config.N_POSTS); s.add_argument("--seed", type=int, default=config.SEED)
