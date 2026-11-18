@@ -95,7 +95,7 @@ with tab4:
     st.dataframe(summary.round(3), width="stretch", hide_index=True)
     chosen = st.selectbox("Inspect a theme", summary["cluster"].tolist())
     st.dataframe(labelled[labelled["cluster"] == chosen][["clean_comment", "sentiment", "like_count"]].head(20),
-                 width="stretch", hide_index=True)
+                 width="stretch", hide_index=True) 
 
 with tab5:
     st.subheader("What should the team do next?")
