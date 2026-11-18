@@ -15,7 +15,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("setup"); s.add_argument("--posts", type=int, default=config.N_POSTS); s.add_argument("--seed", type=int, default=config.SEED)
     r = sub.add_parser("run"); r.add_argument("--host", default="127.0.0.1"); r.add_argument("--port", type=int, default=5000); r.add_argument("--debug", action="store_true")
-    sub.add_parser("analyze")
+    sub.add_parser("analyze") 
     y = sub.add_parser("import-youtube", help="load the YouTube Comment Sentiment Analyzer CSV (classified_comments.csv)")
     y.add_argument("--csv", default=str(config.YOUTUBE_CSV)); y.add_argument("--reanalyze", action="store_true", help="also refresh clustering (not needed: YouTube is excluded from it)")
     i = sub.add_parser("import", help="append REAL (observed) data from CSV files")
