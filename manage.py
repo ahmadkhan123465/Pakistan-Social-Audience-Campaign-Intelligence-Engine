@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Command line for the Campaign Intelligence Engine.
-
+ 
   python manage.py setup            build DB with simulated data + run analysis
   python manage.py run              start the web app  (http://127.0.0.1:5000)
   python manage.py analyze          re-run clustering / anomalies / recommendations
