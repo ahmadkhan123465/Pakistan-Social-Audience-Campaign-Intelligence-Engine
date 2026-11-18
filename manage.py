@@ -24,7 +24,7 @@ def main():
     i.add_argument("--collected", default=config.COLLECTION_DATE); i.add_argument("--permission", default="Check platform terms before redistributing")
     a = ap.parse_args()
 
-    if a.cmd == "setup":
+    if a.cmd == "setup": 
         print("Building database ..."); print(pipeline.build(a.posts, a.seed)); print("Done. Start the app with: python manage.py run")
     elif a.cmd == "run":
         from campaign_engine.webapp import create_app
