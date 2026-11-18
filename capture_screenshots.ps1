@@ -1,7 +1,7 @@
 $edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 $outDir = "C:\Users\Kashif Hafeez\Desktop\pak-audience-intel-main\docs\screenshots"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-
+ 
 $pages = @(
     @{ name = "01_executive_dashboard.png"; url = "http://127.0.0.1:5000/" },
     @{ name = "02_ad_budget_optimizer.png"; url = "http://127.0.0.1:5000/budget" },
