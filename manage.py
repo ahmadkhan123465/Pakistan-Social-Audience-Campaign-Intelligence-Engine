@@ -6,7 +6,7 @@
   python manage.py import-youtube [--csv path]   add YouTube comments from the sentiment analyzer 
   python manage.py import --posts posts.csv --comments comments.csv --source "My scrape" --url https://...
 """ 
-import argparse, sys
+import argparse, sys 
 from campaign_engine import config, pipeline, database as db
 
 
