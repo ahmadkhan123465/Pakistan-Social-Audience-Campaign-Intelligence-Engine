@@ -2,7 +2,7 @@ import pandas as pd
 
 from src.engagement_analysis import summarize
 
- 
+  
 def build_recommendations(df, summary, anomalies, spikes, unlabeled_reviews=0):
     rows = []
     neg_share = (df["sentiment"] == "Negative").mean()
