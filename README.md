@@ -1,6 +1,7 @@
 # 📊 Pakistan Social Audience & Campaign Intelligence Engine (Project 3) 
 
 **Author:** Kashif Hafeez  
+**Email:** kashif.hafeez.dev@gmail.com
 **Student ID:** F2024376314  
 **Framework:** Flask · SQLite (1NF, 2NF, 3NF) · Scikit-Learn · Chart.js · Pandas  
 **Repository:**  [https://github.com/kashifkhan117401-bit/pakistan-audience-intel.git](https://github.com/kashifkhan117401-bit/pakistan-audience-intel.git)
