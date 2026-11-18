@@ -4,7 +4,7 @@
   python manage.py setup            build DB with simulated data + run analysis
   python manage.py run              start the web app  (http://127.0.0.1:5000)
   python manage.py analyze          re-run clustering / anomalies / recommendations
-  python manage.py import-youtube [--csv path]   add YouTube comments from the sentiment analyzer
+  python manage.py import-youtube [--csv path]   add YouTube comments from the sentiment analyzer 
   python manage.py import --posts posts.csv --comments comments.csv --source "My scrape" --url https://...
 """ 
 import argparse, sys
