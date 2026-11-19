@@ -113,7 +113,7 @@ def _read(conn):
 
 
 def run_analysis(conn, seed=config.SEED, verbose=True, model_path=None):
-    model_path = model_path or config.MODEL_PATH
+    model_path = model_path or config.MODEL_PATH   
     for t in ("recommendation", "post_anomaly", "segment_map_point"):
         conn.execute(f"DELETE FROM {t}")
     conn.execute("UPDATE comment SET segment_id=NULL"); conn.execute("DELETE FROM segment"); conn.commit()
