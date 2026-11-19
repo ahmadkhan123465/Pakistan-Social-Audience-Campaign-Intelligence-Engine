@@ -27,7 +27,7 @@ def main():
     if a.cmd == "setup": 
         print("Building database ..."); print(pipeline.build(a.posts, a.seed)); print("Done. Start the app with: python manage.py run")
     elif a.cmd == "run":
-        from campaign_engine.webapp import create_app
+        from campaign_engine.webapp import create_app 
         if not config.DB_PATH.exists():
             print("No database yet - building one first ..."); pipeline.build()
         create_app().run(host=a.host, port=a.port, debug=a.debug)
