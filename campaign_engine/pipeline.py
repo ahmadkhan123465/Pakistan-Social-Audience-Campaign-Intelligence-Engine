@@ -79,7 +79,7 @@ def insert_comments(conn, comments: pd.DataFrame) -> pd.DataFrame:
     people = _ids(conn, "commenter", "commenter_id", "display_name")
     lookup = {"language_type": L, "topic": T, "sentiment": S, "purchase_intent": I}
     rows, out = [], []
-    for r in comments.itertuples():
+    for r in comments.itertuples(): 
         a = nlp.analyze(r.comment_text)
         for col, ids in lookup.items():
             v = _opt(r, col)
