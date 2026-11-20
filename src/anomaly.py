@@ -7,7 +7,7 @@ FEATURES = {
     "likes_rel": "likes",
     "replies_rel": "replies", 
     "words_rel": "comment length",
-    "sentiment_score": "sentiment score",
+    "sentiment_score": "sentiment score", 
     "confidence": "model confidence",
 }
 
