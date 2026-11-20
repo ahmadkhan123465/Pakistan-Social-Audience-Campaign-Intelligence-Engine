@@ -1,4 +1,4 @@
-from campaign_engine import database as db
+from campaign_engine import database as db 
 
 total = db.query("SELECT COUNT(*) AS n FROM comment")[0]["n"]
 yt = db.query("SELECT COUNT(*) AS n FROM comment WHERE post_id LIKE 'YT-%'")[0]["n"]
