@@ -5,5 +5,5 @@ yt = db.query("SELECT COUNT(*) AS n FROM comment WHERE post_id LIKE 'YT-%'")[0][
 sources = db.query("SELECT source_name, provenance, COUNT(p.post_id) AS posts FROM data_source ds LEFT JOIN post p USING(source_id) GROUP BY source_name")
 
 print(f"Total comments in DB: {total:,}")
-print(f"YouTube comments in DB: {yt:,}")
+print(f"YouTube comments in DB: {yt:,}") 
 print(f"Data Sources: {sources}")   
