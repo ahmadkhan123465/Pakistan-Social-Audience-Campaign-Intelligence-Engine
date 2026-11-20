@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 
 FEATURES = {
     "likes_rel": "likes",
-    "replies_rel": "replies",
+    "replies_rel": "replies", 
     "words_rel": "comment length",
     "sentiment_score": "sentiment score",
     "confidence": "model confidence",
