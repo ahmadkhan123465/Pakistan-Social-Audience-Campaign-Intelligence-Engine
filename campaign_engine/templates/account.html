@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+
+{% block title %}Account &amp; Security{% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <div>
+    <h1>Account &amp; Security Center</h1>
+    <p>Manage your profile, update your password, review sign-in audit events, and protect workspace access.</p>
+  </div>
+  <form method="post" action="{{ url_for('logout') }}" style="margin:0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn danger">{{ icon('logout') }} Sign Out</button>
+  </form>
+</div>
+
+<!-- User Hero Summary -->
+<div class="card account-hero">
+  <div class="account-hero-left">
+    <div class="avatar lg">{{ current_user.initials }}</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0;font-size:1.3rem">{{ current_user.full_name }}</h2>
+        <span class="badge b-topic" style="text-transform:uppercase">{{ current_user.role }}</span>
+        <span class="badge b-pos">Active</span>
+      </div>
+      <div class="account-meta">
+        <span>@{{ current_user.username }}</span>
+        <span>·</span>
+        <span>{{ current_user.email }}</span>
+        <span>·</span>
+        <span>Joined {{ current_user.created_at[:10] if current_user.created_at else '—' }}</span>
+        <span>·</span>
+        <span>Last login {{ current_user.last_login_at or 'Just now' }} UTC</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="badge b-neu">{{ icon('shield') }} CAPTCHA Guard Active</span>
+    <span class="badge b-neu">{{ icon('lock') }} PBKDF2-SHA256</span>
+  </div>
+</div>
+
+<!-- Privacy & Data Permissions Card -->
+<section class="card" style="margin-bottom:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+    <div>
+      <h2 style="margin:0 0 2px">Privacy Permissions &amp; Consent Reason</h2>
+      <p class="muted small" style="margin:0">Review or update your website data permissions and the reason recorded for your decision.</p>
+    </div>
+    <button type="button" class="btn primary sm" data-open-consent>{{ icon('shield') }} Manage Permissions</button>
+  </div>
+  {% if current_consent %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px">
+    <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+      <div class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;margin-bottom:5px">Current Decision</div>
+      <div>
+        {% if current_consent.decision == 'accepted_all' %}
+          <span class="badge b-pos">Accepted All</span>
+        {% elif current_consent.decision == 'rejected_all' %}
+          <span class="badge b-neg">Rejected All (Essential Only)</span>
+        {% else %}
+          <span class="badge b-topic">Custom Preferences</span>
+        {% endif %}
+      </div>
+      <div class="small muted" style="margin-top:6px">Updated {{ current_consent.updated_at }} UTC</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+      <div class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;margin-bottom:6px">Enabled Permissions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <span class="badge b-pos">Essential</span>
+        <span class="badge {{ 'b-pos' if current_consent.analytics else 'b-neu' }}">Analytics: {{ 'On' if current_consent.analytics else 'Off' }}</span>
+        <span class="badge {{ 'b-pos' if current_consent.personalization else 'b-neu' }}">Personalization: {{ 'On' if current_consent.personalization else 'Off' }}</span>
+        <span class="badge {{ 'b-pos' if current_consent.diagnostics else 'b-neu' }}">Diagnostics: {{ 'On' if current_consent.diagnostics else 'Off' }}</span>
+      </div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+      <div class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;margin-bottom:5px">Recorded Reason</div>
+      <div class="small" style="color:var(--ink)">{{ current_consent.reason }}</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="qbox small" style="margin:10px 0 0">No permission decision recorded yet. Use the <strong>Manage Permissions</strong> button above to Accept All, Reject All, or customize your purposes and reason.</div>
+  {% endif %}
+</section>
+
+<!-- Profile & Password Forms -->
+<div class="grid g2" style="margin-bottom:20px">
+  <section class="card">
+    <h2>Profile Details</h2>
+    <p class="muted small" style="margin-top:-2px">Update how your name and contact email appear across the workspace.</p>
+    <form method="post" action="{{ url_for('account') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="update_profile">
+      <div class="field">
+        <label for="prof_username">Username <span class="muted small">(immutable)</span></label>
+        <div class="input-wrap no-icon">
+          <input id="prof_username" type="text" value="{{ current_user.username }}" disabled style="opacity:.7;cursor:not-allowed">
+        </div>
+      </div>
+      <div class="field">
+        <label for="prof_name">Full Name</label>
+        <div class="input-wrap no-icon">
+          <input id="prof_name" name="full_name" type="text" value="{{ current_user.full_name }}" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="prof_email">Email Address</label>
+        <div class="input-wrap no-icon">
+          <input id="prof_email" name="email" type="email" value="{{ current_user.email }}" required>
+        </div>
+      </div>
+      <button type="submit" class="btn primary">{{ icon('check') }} Save Profile Changes</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Change Password</h2>
+    <p class="muted small" style="margin-top:-2px">Use a strong, unique password with uppercase, lowercase, numbers, and symbols.</p>
+    <form method="post" action="{{ url_for('account') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="change_password">
+      <div class="field">
+        <label for="cur_pw">Current Password</label>
+        <div class="input-wrap">
+          <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+          <input id="cur_pw" name="current_password" type="password" required autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-toggle-pw aria-label="Show password">
+            <span data-eye-on>{{ icon('eye') }}</span>
+            <span data-eye-off style="display:none">{{ icon('eye-off') }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="new_pw">New Password</label>
+        <div class="input-wrap">
+          <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+          <input id="new_pw" name="new_password" type="password" required autocomplete="new-password" data-pw-meter="acctPwMeter">
+          <button type="button" class="pw-toggle" data-toggle-pw aria-label="Show password">
+            <span data-eye-on>{{ icon('eye') }}</span>
+            <span data-eye-off style="display:none">{{ icon('eye-off') }}</span>
+          </button>
+        </div>
+        <div class="pw-meter" id="acctPwMeter">
+          <div class="pw-bars" data-score="0"><i></i><i></i><i></i><i></i></div>
+          <div class="pw-rules">
+            <span data-rule="len">8+ chars</span>
+            <span data-rule="upper">Uppercase</span>
+            <span data-rule="lower">Lowercase</span>
+            <span data-rule="num">Number</span>
+            <span data-rule="spec">Symbol</span>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="conf_pw">Confirm New Password</label>
+        <div class="input-wrap">
+          <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+          <input id="conf_pw" name="confirm_password" type="password" required autocomplete="new-password">
+          <button type="button" class="pw-toggle" data-toggle-pw aria-label="Show password">
+            <span data-eye-on>{{ icon('eye') }}</span>
+            <span data-eye-off style="display:none">{{ icon('eye-off') }}</span>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn primary">{{ icon('key') }} Update Password</button>
+    </form>
+  </section>
+</div>
+
+{% if current_user.role == 'admin' and users %}
+<!-- Admin User Management -->
+<section class="card" style="margin-bottom:20px">
+  <h2>Workspace User Directory <span class="badge b-topic">{{ users|length }} accounts</span></h2>
+  <p class="muted small" style="margin-top:-2px">Administrator controls for managing roles, lockouts, and account access.</p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Last Login (UTC)</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:9px">
+              <div class="avatar" style="width:30px;height:30px;font-size:.74rem">{{ u.initials }}</div>
+              <div>
+                <strong>{{ u.full_name }}</strong>
+                <div class="muted small">@{{ u.username }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="small">{{ u.email }}</td>
+          <td>
+            <form method="post" action="{{ url_for('account') }}" style="display:inline-flex;gap:6px;align-items:center;margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="set_role">
+              <input type="hidden" name="target_user_id" value="{{ u.user_id }}">
+              <select name="role" style="min-width:105px;padding:4px 8px;font-size:.82rem" {% if u.user_id == current_user.user_id %}disabled{% endif %} onchange="this.form.submit()">
+                {% for r in ['admin','analyst','viewer'] %}
+                <option value="{{ r }}" {{ 'selected' if u.role==r }}>{{ r|title }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td>
+            {% if not u.is_active %}
+              <span class="badge b-neg">Deactivated</span>
+            {% elif u.is_locked %}
+              <span class="badge b-medium">Locked</span>
+            {% else %}
+              <span class="badge b-pos">Active</span>
+            {% endif %}
+          </td>
+          <td class="small muted nowrap">{{ u.last_login_at or 'Never' }}</td>
+          <td class="nowrap">
+            {% if u.is_locked or u.failed_attempts %}
+            <form method="post" action="{{ url_for('account') }}" style="display:inline;margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="unlock">
+              <input type="hidden" name="target_user_id" value="{{ u.user_id }}">
+              <button type="submit" class="btn sm">Unlock</button>
+            </form>
+            {% endif %}
+            {% if u.user_id != current_user.user_id %}
+            <form method="post" action="{{ url_for('account') }}" style="display:inline;margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="toggle_active">
+              <input type="hidden" name="target_user_id" value="{{ u.user_id }}">
+              <button type="submit" class="btn sm {{ 'danger' if u.is_active else 'primary' }}">
+                {{ 'Deactivate' if u.is_active else 'Activate' }}
+              </button>
+            </form>
+            {% else %}
+            <span class="muted small">Current session</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<!-- Security Activity Audit Log -->
+<section class="card">
+  <h2>Recent Security Activity <span class="muted small">{{ 'All workspace events' if current_user.role=='admin' else 'Your account events' }}</span></h2>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp (UTC)</th>
+          <th>Account</th>
+          <th>Event</th>
+          <th>Details</th>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        {% set ev = log.event_type %}
+        <tr>
+          <td class="nowrap small muted">{{ log.created_at }}</td>
+          <td class="nowrap"><strong>{{ log.username or '—' }}</strong></td>
+          <td class="nowrap">
+            <span class="badge {{ 'b-pos' if ev in ['login_success','register_success','password_changed','profile_updated'] else ('b-neg' if ev in ['login_failed','account_locked','captcha_failed','login_blocked_locked','login_blocked_inactive'] else 'b-neu') }}">
+              {{ ev|replace('_',' ') }}
+            </span>
+          </td>
+          <td class="small">{{ log.details or '—' }}</td>
+          <td class="small muted nowrap"><code>{{ log.ip_address or '—' }}</code></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty">No security events recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

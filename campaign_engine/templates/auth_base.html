@@ -1,0 +1,116 @@
+{% from '_macros.html' import icon, brand_mark %}
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0C2924">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Campaign Intel">
+<title>{% block title %}Sign In{% endblock %} · Campaign Intelligence</title>
+<link rel="manifest" href="{{ url_for('manifest') }}">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+</head>
+<body>
+<div class="auth-page">
+  <section class="auth-brand" aria-label="Platform overview">
+    <div class="auth-logo">
+      <div class="mark">{{ brand_mark('green', 44) }}</div>
+      <div>Campaign Intelligence<small>Pakistan Social Audience Engine</small></div>
+    </div>
+
+    <div class="auth-hero">
+      <div class="auth-eyebrow">{{ icon('shield') }} Secured Analytics Workspace</div>
+      <h1>Know Pakistan’s audience before you spend a rupee.</h1>
+      <p class="auth-tagline">Every city. Every community. Every conversation, one engine.</p>
+      <p>
+        Unified multi-channel intelligence across Instagram, TikTok, Facebook, and YouTube —
+        combining Roman Urdu &amp; English NLP, K-Means audience segmentation, Isolation Forest anomaly detection,
+        and power-law ad budget optimization.
+      </p>
+
+      <div class="auth-metrics">
+        <div class="auth-metric">
+          <strong>3,000+</strong>
+          <span>Posts analysed</span>
+        </div>
+        <div class="auth-metric">
+          <strong>31.7K</strong>
+          <span>Multilingual comments</span>
+        </div>
+        <div class="auth-metric">
+          <strong>3NF SQL</strong>
+          <span>Normalized telemetry</span>
+        </div>
+      </div>
+
+      <div class="auth-trust">
+        <span class="auth-trust-pill">{{ icon('shield') }} Server-side SVG CAPTCHA</span>
+        <span class="auth-trust-pill">{{ icon('lock') }} PBKDF2-SHA256 Hashing</span>
+        <span class="auth-trust-pill">{{ icon('key') }} CSRF &amp; Lockout Guard</span>
+        <span class="auth-trust-pill">{{ icon('activity') }} Full Audit Trail</span>
+      </div>
+    </div>
+
+    <div class="auth-brand-foot">
+      <span>CAMPAIGN INTELLIGENCE · PAKISTAN</span>
+      <span>Protected Access · SQLite Auth Vault</span>
+    </div>
+  </section>
+
+  <main class="auth-main">
+    <div class="auth-topbar">
+      <button class="btn sm" type="button" data-theme-toggle aria-label="Toggle light or dark theme">
+        <span data-theme-sun style="display:none">{{ icon('sun') }}</span>
+        <span data-theme-moon>{{ icon('moon') }}</span>
+        <span data-theme-label>Dark</span>
+      </button>
+    </div>
+
+    <div class="auth-mobile-brand" aria-label="Campaign Intelligence">
+      {{ brand_mark('green', 38) }}
+      <div>
+        <strong>Campaign Intelligence</strong>
+        <span>Know Pakistan’s audience before you spend a rupee.</span>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs" role="tablist">
+        <a href="{{ url_for('login') }}" class="{{ 'active' if auth_tab=='login' }}" role="tab" aria-selected="{{ 'true' if auth_tab=='login' else 'false' }}">Sign In</a>
+        <a href="{{ url_for('register') }}" class="{{ 'active' if auth_tab=='register' }}" role="tab" aria-selected="{{ 'true' if auth_tab=='register' else 'false' }}">Create Account</a>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack" role="status" aria-live="polite">
+          {% for cat, msg in messages %}
+          <div class="flash {{ cat if cat in ['success','error','warning','info'] else 'info' }}">
+            <div class="flash-body">
+              {{ icon('check' if cat=='success' else ('alert' if cat in ['error','warning'] else 'info')) }}
+              <span>{{ msg }}</span>
+            </div>
+            <button type="button" class="flash-close" data-flash-close aria-label="Dismiss">{{ icon('x') }}</button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      {% if error %}
+      <div class="flash error" role="alert" style="margin-bottom:16px">
+        <div class="flash-body">{{ icon('alert') }}<span>{{ error }}</span></div>
+      </div>
+      {% endif %}
+
+      {% block auth_body %}{% endblock %}
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

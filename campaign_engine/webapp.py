@@ -2,19 +2,36 @@
 from __future__ import annotations
 import io
 import math
+import os
 import re
+import secrets
 import sqlite3
+from datetime import timedelta
 from functools import lru_cache
 
 import joblib
 import numpy as np
 import pandas as pd
-from flask import Flask, Response, abort, jsonify, render_template, request, url_for
+from flask import (
+    Flask,
+    Response,
+    abort,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import config, database as db, nlp, analytics
+from . import analytics, auth, captcha, config, database as db, nlp
 
 FILTER_KEYS = ("platform", "brand", "campaign")
 PER_PAGE = 25
+PUBLIC_ENDPOINTS = {"login", "register", "logout", "captcha_svg", "health", "static", "manifest", "service_worker"}
 
 
 def r(x, n=2):
@@ -25,7 +42,62 @@ def r(x, n=2):
 
 def create_app():
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.json.sort_keys = False
+    app.secret_key = auth.load_or_create_secret_key()
+    is_hf_space = bool(os.environ.get("SPACE_ID"))
+    is_https_host = (
+        is_hf_space
+        or os.environ.get("COOKIE_SECURE", "").lower() in ("1", "true", "yes")
+        or bool(os.environ.get("RENDER"))
+    )
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="None" if is_hf_space else "Lax",
+        SESSION_COOKIE_SECURE=is_https_host,
+        PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+    )
+    auth.init_auth_db()
+
+    def client_ip():
+        return (request.headers.get("X-Forwarded-For") or request.remote_addr or "").split(",")[0].strip()
+
+    def client_ua():
+        return request.headers.get("User-Agent", "")
+
+    @app.before_request
+    def load_and_guard_user():
+        g.user = None
+        uid = session.get("user_id")
+        if uid:
+            u = auth.get_user_by_id(uid)
+            if u and u.get("is_active"):
+                g.user = u
+            else:
+                session.clear()
+
+        ep = request.endpoint
+        if ep is None or ep in PUBLIC_ENDPOINTS:
+            return None
+        if g.user is None:
+            if request.path.startswith("/api/"):
+                return jsonify(error="Authentication required. Please sign in."), 401
+            nxt = request.full_path.rstrip("?")
+            return redirect(url_for("login", next=nxt if auth.is_safe_next_url(nxt) else None))
+        return None
+
+    @app.after_request
+    def add_security_headers(resp):
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        if is_hf_space:
+            resp.headers.setdefault(
+                "Content-Security-Policy",
+                "frame-ancestors 'self' https://huggingface.co https://*.hf.space",
+            )
+        else:
+            resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        return resp
 
     # ------------------------------------------------------------ helpers
     def data(scope="analysis"):
@@ -55,11 +127,26 @@ def create_app():
 
     @app.context_processor
     def inject():
+        u = getattr(g, "user", None)
+        base = dict(
+            current_user=u,
+            current_consent=auth.get_user_consent(u["user_id"]) if u else None,
+            csrf_token=lambda: auth.get_csrf_token(session),
+        )
+        if request.endpoint in PUBLIC_ENDPOINTS or u is None:
+            base.update(filters={}, filter_opts={k: [] for k in FILTER_KEYS},
+                        fq=lambda ep, **kw: url_for(ep, **kw), sources=[])
+            return base
         posts, _ = data("all" if request.endpoint in ALL_SCOPE else "analysis")
         f = filters()
         opts = {k: sorted(posts[k].dropna().unique().tolist()) for k in FILTER_KEYS}
-        return dict(filters=f, filter_opts=opts, fq=lambda ep, **kw: url_for(ep, **{**f, **kw}),
-                    sources=db.query("SELECT provenance, COUNT(*) n FROM data_source ds JOIN post p USING(source_id) GROUP BY provenance"))
+        base.update(
+            filters=f,
+            filter_opts=opts,
+            fq=lambda ep, **kw: url_for(ep, **{**f, **kw}),
+            sources=db.query("SELECT provenance, COUNT(*) n FROM data_source ds JOIN post p USING(source_id) GROUP BY provenance"),
+        )
+        return base
 
     @app.template_filter("num")
     def num(x):
@@ -112,6 +199,238 @@ def create_app():
     def topic_share(comments):
         vc = comments["topic"].value_counts()
         return vc, vc / max(len(comments), 1)
+
+    # ------------------------------------------------------------ authentication & CAPTCHA
+    @app.route("/captcha.svg")
+    def captcha_svg():
+        mode = request.args.get("mode", "text")
+        theme = request.args.get("theme", "light")
+        ch = captcha.create_challenge(session, mode=mode)
+        svg = captcha.render_svg(ch["display"], mode=ch["mode"], theme=theme)
+        return Response(
+            svg,
+            mimetype="image/svg+xml",
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        if getattr(g, "user", None):
+            return redirect(url_for("dashboard"))
+
+        nxt = request.args.get("next") or request.form.get("next") or ""
+        identifier = ""
+        remember = False
+        error = None
+
+        if request.method == "POST":
+            identifier = (request.form.get("identifier") or "").strip()
+            password = request.form.get("password") or ""
+            captcha_input = request.form.get("captcha") or ""
+            remember = request.form.get("remember") == "1"
+
+            if not auth.validate_csrf_token(session, request.form.get("csrf_token")):
+                error = "Security token expired or invalid. Please submit the form again."
+            else:
+                ok_cap, cap_err = captcha.verify_challenge(session, captcha_input)
+                if not ok_cap:
+                    auth.log_event(
+                        "captcha_failed",
+                        username=identifier[:60] or None,
+                        ip=client_ip(),
+                        ua=client_ua(),
+                        details="Login CAPTCHA verification failed",
+                    )
+                    error = cap_err
+                else:
+                    user, auth_err = auth.authenticate(
+                        identifier, password, ip=client_ip(), ua=client_ua()
+                    )
+                    if auth_err or not user:
+                        error = auth_err or "Sign-in failed."
+                    else:
+                        # Rotate session to prevent session fixation
+                        session.clear()
+                        session["user_id"] = user["user_id"]
+                        session.permanent = bool(remember)
+                        auth.get_csrf_token(session)
+                        flash(f"Welcome back, {user['full_name']}!", "success")
+                        dest = nxt if auth.is_safe_next_url(nxt) else url_for("dashboard")
+                        return redirect(dest)
+
+        return render_template(
+            "login.html",
+            auth_tab="login",
+            identifier=identifier,
+            remember=remember,
+            next_url=nxt if auth.is_safe_next_url(nxt) else "",
+            error=error,
+            captcha_nonce=secrets.token_hex(4),
+        )
+
+    @app.route("/register", methods=["GET", "POST"])
+    def register():
+        if getattr(g, "user", None):
+            return redirect(url_for("dashboard"))
+
+        form_data = {"full_name": "", "username": "", "email": ""}
+        error = None
+
+        if request.method == "POST":
+            form_data["full_name"] = (request.form.get("full_name") or "").strip()
+            form_data["username"] = (request.form.get("username") or "").strip()
+            form_data["email"] = (request.form.get("email") or "").strip()
+            password = request.form.get("password") or ""
+            confirm = request.form.get("confirm_password") or ""
+            captcha_input = request.form.get("captcha") or ""
+
+            if not auth.validate_csrf_token(session, request.form.get("csrf_token")):
+                error = "Security token expired or invalid. Please submit the form again."
+            else:
+                ok_cap, cap_err = captcha.verify_challenge(session, captcha_input)
+                if not ok_cap:
+                    auth.log_event(
+                        "captcha_failed",
+                        username=form_data["username"][:60] or None,
+                        ip=client_ip(),
+                        ua=client_ua(),
+                        details="Registration CAPTCHA verification failed",
+                    )
+                    error = cap_err
+                elif password != confirm:
+                    error = "Passwords do not match."
+                else:
+                    user, reg_err = auth.register_user(
+                        username=form_data["username"],
+                        email=form_data["email"],
+                        full_name=form_data["full_name"],
+                        password=password,
+                        role="analyst",
+                        ip=client_ip(),
+                        ua=client_ua(),
+                    )
+                    if reg_err or not user:
+                        error = reg_err or "Could not create account."
+                    else:
+                        session.clear()
+                        session["user_id"] = user["user_id"]
+                        session.permanent = True
+                        auth.get_csrf_token(session)
+                        flash(f"Account created! Welcome to Campaign Intelligence, {user['full_name']}.", "success")
+                        return redirect(url_for("dashboard"))
+
+        return render_template(
+            "register.html",
+            auth_tab="register",
+            form=form_data,
+            error=error,
+            captcha_nonce=secrets.token_hex(4),
+        )
+
+    @app.route("/logout", methods=["POST", "GET"])
+    def logout():
+        if request.method == "POST" and not auth.validate_csrf_token(session, request.form.get("csrf_token")):
+            flash("Invalid security token for sign out.", "error")
+            return redirect(url_for("dashboard"))
+        if getattr(g, "user", None):
+            auth.log_event(
+                "logout",
+                user_id=g.user["user_id"],
+                username=g.user["username"],
+                ip=client_ip(),
+                ua=client_ua(),
+                details="User signed out",
+            )
+        session.clear()
+        flash("You have been signed out safely.", "info")
+        return redirect(url_for("login"))
+
+    @app.route("/account", methods=["GET", "POST"])
+    def account():
+        u = g.user
+        if request.method == "POST":
+            if not auth.validate_csrf_token(session, request.form.get("csrf_token")):
+                flash("Security token expired. Please try again.", "error")
+                return redirect(url_for("account"))
+
+            action = request.form.get("action", "")
+            if action == "update_profile":
+                ok, msg = auth.update_profile(
+                    u["user_id"],
+                    request.form.get("full_name", ""),
+                    request.form.get("email", ""),
+                    ip=client_ip(),
+                    ua=client_ua(),
+                )
+                flash(msg, "success" if ok else "error")
+                return redirect(url_for("account"))
+
+            elif action == "change_password":
+                new_pw = request.form.get("new_password", "")
+                confirm_pw = request.form.get("confirm_password", "")
+                if new_pw != confirm_pw:
+                    flash("New password and confirmation do not match.", "error")
+                    return redirect(url_for("account"))
+                ok, msg = auth.change_password(
+                    u["user_id"],
+                    request.form.get("current_password", ""),
+                    new_pw,
+                    ip=client_ip(),
+                    ua=client_ua(),
+                )
+                flash(msg, "success" if ok else "error")
+                return redirect(url_for("account"))
+
+            elif action in ("toggle_active", "unlock", "set_role"):
+                if u.get("role") != "admin":
+                    abort(403)
+                try:
+                    target_id = int(request.form.get("target_user_id", "0"))
+                except ValueError:
+                    flash("Invalid user selection.", "error")
+                    return redirect(url_for("account"))
+                ok, msg = auth.admin_update_user(
+                    actor_id=u["user_id"],
+                    target_user_id=target_id,
+                    action=action,
+                    role=request.form.get("role"),
+                    ip=client_ip(),
+                    ua=client_ua(),
+                )
+                flash(msg, "success" if ok else "error")
+                return redirect(url_for("account"))
+
+        logs = auth.get_recent_audit_logs(
+            user_id=None if u["role"] == "admin" else u["user_id"],
+            limit=25,
+        )
+        users = auth.list_users() if u["role"] == "admin" else []
+        return render_template("account.html", page="account", logs=logs, users=users)
+
+    @app.post("/api/consent")
+    def api_consent():
+        payload = request.get_json(silent=True) or {}
+        token = request.headers.get("X-CSRF-Token") or payload.get("csrf_token")
+        if not auth.validate_csrf_token(session, token):
+            return jsonify(error="Invalid security token. Please refresh the page."), 400
+        decision = str(payload.get("decision", "")).strip()
+        consent, err = auth.save_user_consent(
+            user_id=g.user["user_id"],
+            decision=decision,
+            analytics=bool(payload.get("analytics")),
+            personalization=bool(payload.get("personalization")),
+            diagnostics=bool(payload.get("diagnostics")),
+            reason=str(payload.get("reason", "")),
+            ip=client_ip(),
+            ua=client_ua(),
+        )
+        if err or not consent:
+            return jsonify(error=err or "Could not save permissions."), 400
+        return jsonify(ok=True, consent=consent)
 
     # ------------------------------------------------------------ dashboard
     @app.route("/")
@@ -492,9 +811,24 @@ def create_app():
         buf = io.StringIO(); df.to_csv(buf, index=False)
         return Response("\ufeff" + buf.getvalue(), mimetype="text/csv", headers={"Content-Disposition": f"attachment; filename={name}.csv"})
 
+    @app.route("/manifest.webmanifest")
+    def manifest():
+        return app.send_static_file("manifest.webmanifest")
+
+    @app.route("/sw.js")
+    def service_worker():
+        resp = app.send_static_file("sw.js")
+        resp.headers["Service-Worker-Allowed"] = "/"
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
     @app.route("/healthz")
     def health():
         return jsonify(status="ok")
+
+    @app.errorhandler(403)
+    def forb(e):
+        return render_template("error.html", page="", code=403, msg="You do not have permission to perform that action."), 403
 
     @app.errorhandler(404)
     def nf(e):

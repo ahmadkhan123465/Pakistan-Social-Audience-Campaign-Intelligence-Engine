@@ -6,15 +6,24 @@
   python manage.py import-youtube [--csv path]   add YouTube comments from the sentiment analyzer 
   python manage.py import --posts posts.csv --comments comments.csv --source "My scrape" --url https://...
 """ 
-import argparse, sys  
+import argparse, socket, sys
 from campaign_engine import config, pipeline, database as db
+
+
+def _lan_ip():
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except OSError:
+        return None
 
 
 def main(): 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("setup"); s.add_argument("--posts", type=int, default=config.N_POSTS); s.add_argument("--seed", type=int, default=config.SEED)
-    r = sub.add_parser("run"); r.add_argument("--host", default="127.0.0.1"); r.add_argument("--port", type=int, default=5000); r.add_argument("--debug", action="store_true")
+    r = sub.add_parser("run"); r.add_argument("--host", default="0.0.0.0"); r.add_argument("--port", type=int, default=5000); r.add_argument("--debug", action="store_true")
     sub.add_parser("analyze") 
     y = sub.add_parser("import-youtube", help="load the YouTube Comment Sentiment Analyzer CSV (classified_comments.csv)")
     y.add_argument("--csv", default=str(config.YOUTUBE_CSV)); y.add_argument("--reanalyze", action="store_true", help="also refresh clustering (not needed: YouTube is excluded from it)")
@@ -30,6 +39,10 @@ def main():
         from campaign_engine.webapp import create_app 
         if not config.DB_PATH.exists():
             print("No database yet - building one first ..."); pipeline.build()
+        ip = _lan_ip()
+        print(f"  PC URL     : http://127.0.0.1:{a.port}")
+        if a.host in ("0.0.0.0", "::") and ip:
+            print(f"  Mobile URL : http://{ip}:{a.port}  (same Wi-Fi)")
         create_app().run(host=a.host, port=a.port, debug=a.debug)
     elif a.cmd == "analyze":
         conn = db.connect(); print(pipeline.run_analysis(conn)); conn.close()

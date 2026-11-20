@@ -1,0 +1,19 @@
+{
+  "name": "Campaign Intelligence — Pakistan Audience Engine",
+  "short_name": "Campaign Intel",
+  "description": "Know Pakistan's audience before you spend a rupee. Every city. Every community. Every conversation, one engine.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0C2924",
+  "theme_color": "#0C2924",
+  "icons": [
+    {
+      "src": "/static/img/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

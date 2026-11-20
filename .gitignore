@@ -5,3 +5,5 @@ venv/
 .venv/
 .env
 *.log
+data/auth.db
+data/.secret_key

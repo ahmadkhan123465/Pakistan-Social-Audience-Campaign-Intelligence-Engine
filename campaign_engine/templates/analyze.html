@@ -1,107 +1,169 @@
 {% extends 'base.html' %}
 {% from '_macros.html' import icon %}
 
-{% block title %}Try the NLP Classifier{% endblock %}
+{% block title %}Interactive NLP Classifier{% endblock %}
 
 {% block body %}
 <div class="pagehead">
-  <div>
-    <h1>Interactive NLP Classifier <span class="muted" style="font-weight:400">· Real-Time Prediction</span></h1>
-    <p>
-      Test the sentiment classification, language detection (English, Urdu, Roman Urdu), topic identification,
-      purchase intent prediction, and audience segment assignment on any input text in real time.
-    </p>
-  </div>
+<div>
+  <h1>Interactive NLP Classifier <span class="muted" style="font-weight:400">· Real-Time Prediction</span></h1>
+  <p>
+    Test sentiment polarity, language detection (English, Urdu, Roman Urdu), topic identification,
+    purchase intent prediction, and K-Means audience segment assignment on any custom comment.
+  </p>
+</div>
 </div>
 
-<div class="card" style="padding: 24px; max-width: 800px; margin-bottom: 24px;">
-  <div style="margin-bottom: 16px;">
-    <label for="commentInput" style="display:block; font-weight:700; margin-bottom:6px; font-size:1rem;">
-      Enter a Viewer or Customer Comment
-    </label>
-    <textarea id="commentInput" rows="4" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.95rem; line-height:1.4;" placeholder="e.g. Yeh dress bht khubsurat hai fabric bohat soft hai I will definitely buy again!"></textarea>
+<div class="card" style="max-width:860px;margin-bottom:24px">
+  <div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <label for="commentInput" style="font-weight:700;font-size:.95rem">Enter a Viewer or Customer Comment</label>
+      <span id="charCount" class="small muted">0 / 500</span>
+    </div>
+    <textarea id="commentInput" rows="4" maxlength="500"
+      placeholder="e.g. Yeh dress bht khubsurat hai fabric bohat soft hai I will definitely buy again!"></textarea>
   </div>
 
-  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 20px;">
-    <button class="btn primary" onclick="analyzeText()">⚡ Classify Text</button>
-    <button class="btn sm" onclick="loadSample('Yeh dress bht khubsurat hai fabric bohat soft hai I will definitely buy again!')">Sample: Positive Roman Urdu</button>
-    <button class="btn sm" onclick="loadSample('Worst quality ever. Total waste of money, stitching came off after 1 wash!')">Sample: Negative English</button>
-    <button class="btn sm" onclick="loadSample('Bhai price kya hai aur delivery charges kitne hain Lahore k liye?')">Sample: Inquiry Intent</button>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px">
+    <button id="classifyBtn" class="btn primary" onclick="analyzeText()">{{ icon('try') }} Classify Text</button>
+    <button class="btn sm"
+      onclick="loadSample('Yeh dress bht khubsurat hai fabric bohat soft hai I will definitely buy again!')">Positive
+      Roman Urdu</button>
+    <button class="btn sm"
+      onclick="loadSample('Worst quality ever. Total waste of money, stitching came off after 1 wash!')">Negative
+      English</button>
+    <button class="btn sm"
+      onclick="loadSample('Bhai price kya hai aur delivery charges kitne hain Lahore k liye?')">Price &amp; Delivery
+      Inquiry</button>
+    <button class="btn sm" onclick="loadSample('کیا یہ لان سوٹ لاہور میں دستیاب ہے؟ قیمت بتا دیں')">Urdu Script</button>
   </div>
+
+  <div id="analyzeError" class="flash error" style="display:none;margin-bottom:14px"></div>
 
   <!-- Result Container -->
-  <div id="resultCard" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:20px;">
-    <h3 style="font-size:1.1rem; font-weight:700; margin:0 0 16px 0; border-bottom:1px solid var(--border); padding-bottom:8px;">
-      Classification Results
-    </h3>
+  <div id="resultCard"
+    style="display:none;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:18px">
+    <div
+      style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:14px">
+      <h3 style="margin:0;font-size:1.05rem">Classification Results</h3>
+      <span id="resBadge" class="badge b-neu"></span>
+    </div>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
-      <div>
-        <span style="color:var(--muted); font-size:0.8rem; display:block;">PREDICTED SENTIMENT</span>
-        <strong id="resSentiment" style="font-size:1.1rem;"></strong>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px">
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
+        <span class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;display:block">Predicted
+          Sentiment</span>
+        <strong id="resSentiment" style="font-size:1.08rem"></strong>
       </div>
-      <div>
-        <span style="color:var(--muted); font-size:0.8rem; display:block;">SENTIMENT SCORE</span>
-        <strong id="resScore" style="font-size:1.1rem;"></strong>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
+        <span class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;display:block">Sentiment
+          Score</span>
+        <strong id="resScore" style="font-size:1.08rem"></strong>
       </div>
-      <div>
-        <span style="color:var(--muted); font-size:0.8rem; display:block;">LANGUAGE DETECTED</span>
-        <strong id="resLang" style="font-size:1.1rem;"></strong>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
+        <span class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;display:block">Language
+          Detected</span>
+        <strong id="resLang" style="font-size:1.08rem"></strong>
       </div>
-      <div>
-        <span style="color:var(--muted); font-size:0.8rem; display:block;">TOPIC & THEME</span>
-        <strong id="resTopic" style="font-size:1.1rem;"></strong>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
+        <span class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;display:block">Topic &amp;
+          Theme</span>
+        <strong id="resTopic" style="font-size:1.05rem"></strong>
       </div>
-      <div>
-        <span style="color:var(--muted); font-size:0.8rem; display:block;">PURCHASE INTENT</span>
-        <strong id="resIntent" style="font-size:1.1rem;"></strong>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
+        <span class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;display:block">Purchase
+          Intent</span>
+        <strong id="resIntent" style="font-size:1.05rem"></strong>
       </div>
-      <div>
-        <span style="color:var(--muted); font-size:0.8rem; display:block;">AUDIENCE SEGMENT</span>
-        <strong id="resSegment" style="font-size:1.1rem;"></strong>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
+        <span class="muted" style="font-size:.72rem;font-weight:700;text-transform:uppercase;display:block">Audience
+          Segment</span>
+        <strong id="resSegment" style="font-size:1.05rem"></strong>
       </div>
+    </div>
+
+    <div id="resActionWrap"
+      style="display:none;background:var(--surface);border-left:4px solid var(--brand);border-radius:0 10px 10px 0;padding:10px 14px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)">
+      <span class="muted"
+        style="font-size:.74rem;font-weight:700;text-transform:uppercase;display:block;margin-bottom:2px">Recommended
+        Marketing Action</span>
+      <span id="resAction" class="small"></span>
     </div>
   </div>
 </div>
 
 <script>
-function loadSample(text) {
-  document.getElementById('commentInput').value = text;
-  analyzeText();
-}
+  const commentInput = document.getElementById('commentInput');
+  const charCount = document.getElementById('charCount');
+  commentInput.addEventListener('input', () => {
+    charCount.textContent = commentInput.value.length + ' / 500';
+  });
 
-async function analyzeText() {
-  const text = document.getElementById('commentInput').value.trim();
-  if (!text) return;
+  function loadSample(text) {
+    commentInput.value = text;
+    charCount.textContent = text.length + ' / 500';
+    analyzeText();
+  }
 
-  const card = document.getElementById('resultCard');
-  try {
-    const res = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Analysis failed");
+  async function analyzeText() {
+    const text = commentInput.value.trim();
+    const errEl = document.getElementById('analyzeError');
+    const card = document.getElementById('resultCard');
+    const btn = document.getElementById('classifyBtn');
+    errEl.style.display = 'none';
+    if (!text) {
+      errEl.textContent = 'Please type a comment first.';
+      errEl.style.display = 'flex';
       return;
     }
 
-    const sentEl = document.getElementById('resSentiment');
-    sentEl.innerText = data.sentiment;
-    sentEl.style.color = data.sentiment === 'Positive' ? '#059669' : (data.sentiment === 'Negative' ? '#dc2626' : 'var(--text)');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      if (res.status === 401) {
+        window.location.href = '/login?next=/analyze';
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Analysis failed.';
+        errEl.style.display = 'flex';
+        return;
+      }
 
-    document.getElementById('resScore').innerText = data.sentiment_score.toFixed(2);
-    document.getElementById('resLang').innerText = data.language_type;
-    document.getElementById('resTopic').innerText = data.topic + ' (' + data.theme + ')';
-    document.getElementById('resIntent').innerText = data.purchase_intent;
-    document.getElementById('resSegment').innerText = data.segment ? data.segment.name : 'Unassigned';
+      const sentEl = document.getElementById('resSentiment');
+      sentEl.textContent = data.sentiment;
+      sentEl.style.color = data.sentiment === 'Positive' ? 'var(--good)' : (data.sentiment === 'Negative' ? 'var(--bad)' : 'var(--ink)');
 
-    card.style.display = 'block';
-  } catch (err) {
-    alert("Error communicating with classification API");
+      const badge = document.getElementById('resBadge');
+      badge.textContent = data.sentiment;
+      badge.className = 'badge ' + (data.sentiment === 'Positive' ? 'b-pos' : (data.sentiment === 'Negative' ? 'b-neg' : 'b-neu'));
+
+      document.getElementById('resScore').textContent = (typeof data.sentiment_score === 'number') ? data.sentiment_score.toFixed(2) : '—';
+      document.getElementById('resLang').textContent = data.language_type || '—';
+      document.getElementById('resTopic').textContent = (data.topic || '—') + (data.theme ? ' (' + data.theme + ')' : '');
+      document.getElementById('resIntent').textContent = data.purchase_intent || '—';
+      document.getElementById('resSegment').textContent = data.segment || 'Unassigned';
+
+      const actWrap = document.getElementById('resActionWrap');
+      if (data.suggested_action) {
+        document.getElementById('resAction').textContent = data.suggested_action;
+        actWrap.style.display = 'block';
+      } else {
+        actWrap.style.display = 'none';
+      }
+
+      card.style.display = 'block';
+    } catch (err) {
+      errEl.textContent = 'Error communicating with classification API.';
+      errEl.style.display = 'flex';
+    } finally {
+      btn.disabled = false;
+    }
   }
-}
 </script>
 {% endblock %}
-

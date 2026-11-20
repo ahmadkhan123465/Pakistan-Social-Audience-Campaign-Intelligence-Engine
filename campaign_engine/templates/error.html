@@ -1,3 +1,17 @@
-{% extends 'base.html' %}{% block body %}
-<div class="card empty"><h1>{{ code }}</h1><p>{{ msg }}</p><a class="btn primary" href="{{ url_for('dashboard') }}">Back to dashboard</a></div>
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Error {{ code }}{% endblock %}
+{% block body %}
+<div class="card empty" style="max-width:520px;margin:48px auto;padding:44px 28px">
+  <div style="font-size:3rem;font-weight:850;color:var(--brand);line-height:1;margin-bottom:10px">{{ code }}</div>
+  <h1 style="font-size:1.35rem;margin-bottom:8px">{{ msg }}</h1>
+  <p class="muted small" style="margin-bottom:20px">If you believe this is a mistake, try returning to the dashboard or signing in again.</p>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    {% if current_user %}
+      <a class="btn primary" href="{{ url_for('dashboard') }}">{{ icon('home') }} Back to Dashboard</a>
+    {% else %}
+      <a class="btn primary" href="{{ url_for('login') }}">{{ icon('lock') }} Go to Sign In</a>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

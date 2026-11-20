@@ -1,47 +1,128 @@
-{% from '_macros.html' import icon %}
+{% from '_macros.html' import icon, brand_mark %}
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}Audience & Campaign Intelligence{% endblock %} · Lahore Lawn Campaign Engine</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0C2924">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Campaign Intel">
+<title>{% block title %}Audience & Campaign Intelligence{% endblock %} · Campaign Intelligence</title>
+<link rel="manifest" href="{{ url_for('manifest') }}">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app">
   <aside class="sidebar" id="sidebar" aria-label="Main navigation">
-    <div class="logo"><div class="mark">ع</div><div>Campaign Intelligence<small>Pakistan social audience engine</small></div></div>
+    <a class="logo" href="{{ url_for('dashboard') }}">
+      <div class="mark">{{ brand_mark('green', 38) }}</div>
+      <div>Campaign Intelligence<small>Know Pakistan's audience</small></div>
+    </a>
     {% macro item(ep, label, ic, key, keep=True) %}
       <a href="{{ fq(ep) if keep else url_for(ep) }}" class="{{ 'active' if page==key }}" {% if page==key %}aria-current="page"{% endif %}>{{ icon(ic) }}<span>{{ label }}</span></a>
     {% endmacro %}
-    <nav class="nav">
-      {{ item('dashboard','Dashboard','home','dashboard') }}
-      <div class="nav-label">Five marketing questions</div>
-      {{ item('content','1 · What attracts attention?','content','content') }}
-      {{ item('audience','2 · What does the audience want?','audience','audience') }}
-      {{ item('anomalies','3 · What is unusual?','alert','anomalies') }}
-      {{ item('segments','4 · Which needs to address?','segments','segments') }}
-      {{ item('recommendations','5 · What should we do next?','bulb','recommendations', False) }}
-      <div class="nav-label">Data</div>
-      {{ item('posts_list','Posts (Table A)','posts','posts') }}
-      {{ item('comments_list','Comments (Table B)','comments','comments') }}
-      {{ item('youtube','YouTube sentiment (real)','audience','youtube', False) }}
-      {{ item('ad_budget','Ad Budget Optimizer','chart','budget', False) }}
-      {{ item('database_page','Database & SQL','db','database', False) }}
-      {{ item('analyze_page','Try the classifier','try','analyze', False) }}
-      {{ item('about','Method & data','info','about', False) }}
-    </nav>
+    <div class="sidebar-scroll">
+      <nav class="nav">
+        {{ item('dashboard','Executive Dashboard','home','dashboard') }}
+        <div class="nav-label">Marketing Intelligence</div>
+        {{ item('content','1 · Content Attention','content','content') }}
+        {{ item('audience','2 · Audience Wants','audience','audience') }}
+        {{ item('anomalies','3 · Anomaly Detection','alert','anomalies') }}
+        {{ item('segments','4 · Audience Segments','segments','segments') }}
+        {{ item('recommendations','5 · Action Playbook','bulb','recommendations', False) }}
+        <div class="nav-label">Data & Tools</div>
+        {{ item('posts_list','Posts (Table A)','posts','posts') }}
+        {{ item('comments_list','Comments (Table B)','comments','comments') }}
+        {{ item('youtube','YouTube Sentiment','audience','youtube', False) }}
+        {{ item('ad_budget','Ad Budget Optimizer','chart','budget', False) }}
+        {{ item('database_page','Database & SQL','db','database', False) }}
+        {{ item('analyze_page','NLP Classifier','try','analyze', False) }}
+        {{ item('about','Method & Data','info','about', False) }}
+        <div class="nav-label">Account</div>
+        {{ item('account','Account & Security','shield','account', False) }}
+      </nav>
+    </div>
+
+    {% if current_user %}
+    <div class="sidebar-user">
+      <a href="{{ url_for('account') }}" style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-decoration:none" title="Account & Security">
+        <div class="avatar">{{ current_user.initials }}</div>
+        <div class="sidebar-user-meta">
+          <div class="sidebar-user-name">{{ current_user.full_name }}</div>
+          <div class="sidebar-user-role"><span class="role-dot"></span>{{ current_user.role }} · @{{ current_user.username }}</div>
+        </div>
+      </a>
+      <form method="post" action="{{ url_for('logout') }}" style="margin:0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="icon-btn danger" type="submit" title="Sign out" aria-label="Sign out">{{ icon('logout') }}</button>
+      </form>
+    </div>
+    {% endif %}
   </aside>
+
   <div class="main">
     <header class="topbar">
-      <div style="display:flex;gap:10px;align-items:center">
+      <div class="topbar-left">
         <button class="btn sm menu-btn" id="menuBtn" aria-label="Open menu">{{ icon('menu') }}</button>
-        {% for s in sources %}<span class="badge-src{{ ' real' if s.provenance=='observed' }}" title="{{ 'Generated for demonstration - not real measurements' if s.provenance=='simulated' else 'Collected from public posts' }}">{{ s.n|num }} {{ s.provenance }} post{{ '' if s.n==1 else 's' }}</span>{% endfor %}
+        <a class="mobile-brand" href="{{ url_for('dashboard') }}">{{ brand_mark('green', 28) }}<span>Campaign Intel</span></a>
+        <div class="topbar-badges">
+          {% for s in sources %}<span class="badge-src{{ ' real' if s.provenance=='observed' }}" title="{{ 'Generated for demonstration - not real measurements' if s.provenance=='simulated' else 'Collected from public posts' }}">{{ s.n|num }} {{ s.provenance }} post{{ '' if s.n==1 else 's' }}</span>{% endfor %}
+        </div>
       </div>
-      <button class="btn sm" id="themeBtn" aria-label="Toggle light / dark theme">{{ icon('sun') }} Theme</button>
+      <div class="topbar-right">
+        <button class="btn sm primary" id="installAppBtn" type="button" style="display:none">{{ icon('dl') }}<span>Install App</span></button>
+        <a class="btn sm topbar-nlp" href="{{ url_for('analyze_page') }}" title="Test live NLP classifier">{{ icon('try') }}<span class="nowrap">NLP Sandbox</span></a>
+        <button class="btn sm" id="themeBtn" aria-label="Toggle light / dark theme">
+          <span data-theme-sun style="display:none">{{ icon('sun') }}</span>
+          <span data-theme-moon>{{ icon('moon') }}</span>
+          <span data-theme-label>Dark</span>
+        </button>
+        {% if current_user %}
+        <div class="user-menu">
+          <button class="user-trigger" id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="avatar">{{ current_user.initials }}</span>
+            <span>{{ current_user.full_name.split(' ')[0] }}</span>
+            <span style="width:14px;height:14px;display:inline-flex;opacity:.65">{{ icon('chevron') }}</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" role="menu">
+            <div class="user-dropdown-head">
+              <strong>{{ current_user.full_name }}</strong>
+              <span>{{ current_user.email }}</span>
+            </div>
+            <a href="{{ url_for('account') }}" role="menuitem">{{ icon('shield') }} Account &amp; Security</a>
+            <a href="{{ url_for('dashboard') }}" role="menuitem">{{ icon('home') }} Executive Dashboard</a>
+            <form method="post" action="{{ url_for('logout') }}" style="margin:4px 0 0;padding-top:4px;border-top:1px solid var(--line)">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="signout" role="menuitem">{{ icon('logout') }} Sign Out</button>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+      </div>
     </header>
+
     <main class="content" id="main">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack" role="status" aria-live="polite">
+          {% for cat, msg in messages %}
+          <div class="flash {{ cat if cat in ['success','error','warning','info'] else 'info' }}">
+            <div class="flash-body">
+              {{ icon('check' if cat=='success' else ('alert' if cat in ['error','warning'] else 'info')) }}
+              <span>{{ msg }}</span>
+            </div>
+            <button type="button" class="flash-close" data-flash-close aria-label="Dismiss notification">{{ icon('x') }}</button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
       {% if page in ['dashboard','content','audience','anomalies','segments','posts','comments'] %}
       <form class="filterbar" method="get" data-auto aria-label="Filters">
         {% for k,label in [('platform','Platform'),('brand','Brand'),('campaign','Campaign')] %}
@@ -60,6 +141,153 @@
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+{% if current_user %}
+{% set has_consent = (current_consent is defined and current_consent is not none) %}
+<div class="consent-backdrop{{ ' open' if not has_consent }}" id="consentBackdrop" aria-hidden="true"></div>
+<section
+  class="consent-banner{{ ' open' if not has_consent }}"
+  id="consentBanner"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="consentTitle"
+  data-consent-open="{{ 'true' if not has_consent else 'false' }}"
+  data-csrf="{{ csrf_token() }}"
+>
+  <div class="consent-inner">
+    <div class="consent-grid">
+      <!-- Column 1: Privacy Notice -->
+      <div class="consent-col">
+        <h2 id="consentTitle" class="consent-title">We Care About Your Privacy</h2>
+        <p class="consent-text">
+          We store and access essential session data and optional workspace telemetry on your device to keep your
+          account secure and improve campaign insights. Selecting <strong>I Accept</strong> enables all optional analytics,
+          personalization, and diagnostics. Selecting <strong>Reject All</strong> disables all optional tracking and keeps
+          only strictly necessary security cookies. You can update or withdraw your consent anytime from the
+          <strong>Manage Preferences</strong> icon at the bottom-left or in <strong>Account &amp; Security</strong>.
+        </p>
+      </div>
+
+      <!-- Column 2: Purposes & User Reason -->
+      <div class="consent-col">
+        <h3 class="consent-subtitle">We process data for these reasons:</h3>
+        <p class="consent-text">
+          Authenticate sessions with CAPTCHA &amp; CSRF security, measure cross-platform campaign engagement and audience
+          sentiment accuracy, remember your dashboard filters &amp; theme preferences, and maintain security audit logs.
+        </p>
+        <div class="consent-reason-wrap">
+          <label for="consentReason" class="consent-reason-label">Reason for your choice <span class="muted">(optional)</span></label>
+          <input
+            id="consentReason"
+            type="text"
+            maxlength="300"
+            value="{{ current_consent.reason if current_consent else '' }}"
+            placeholder="e.g. Prefer minimal data collection, or enable full analytics..."
+          >
+          <div class="reason-chips" role="group" aria-label="Quick reason presets">
+            <button type="button" class="reason-chip" data-reason-preset="Privacy preference — keep essential cookies only">Privacy preference</button>
+            <button type="button" class="reason-chip" data-reason-preset="Enable full analytics &amp; personalized dashboard experience">Full analytics needed</button>
+            <button type="button" class="reason-chip" data-reason-preset="Evaluating workspace features for team review">Evaluating platform</button>
+            <button type="button" class="reason-chip" data-reason-preset="Company compliance policy restricts optional telemetry">Compliance policy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 3: Stacked Action Buttons -->
+      <div class="consent-actions">
+        <button type="button" class="consent-btn accept" data-consent-action="accepted_all">I Accept</button>
+        <button type="button" class="consent-btn reject" data-consent-action="rejected_all">Reject All</button>
+        <button type="button" class="consent-btn outline" id="togglePurposesBtn" aria-expanded="false" aria-controls="consentPurposes">Show Purposes</button>
+      </div>
+    </div>
+
+    <!-- Expandable Purposes & Granular Permissions Drawer -->
+    <div class="consent-purposes" id="consentPurposes" hidden>
+      <div class="consent-purposes-head">
+        <div>
+          <h3>Detailed Data Processing Purposes &amp; Reasons</h3>
+          <p class="small muted" style="margin:0">Review why each permission is requested and customize your individual preferences below.</p>
+        </div>
+        {% if has_consent %}
+        <button type="button" class="btn sm" id="closeConsentBtn">{{ icon('x') }} Close</button>
+        {% endif %}
+      </div>
+
+      <div class="purpose-list">
+        <div class="purpose-item">
+          <div>
+            <strong>Strictly Necessary &amp; Security <span class="badge b-pos">Always Active</span></strong>
+            <p><strong>Reason:</strong> Required for login sessions, server-side CAPTCHA verification, CSRF tokens, and brute-force lockout protection.</p>
+          </div>
+          <label class="switch" aria-label="Strictly necessary cookies (always active)">
+            <input type="checkbox" checked disabled>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="purpose-item">
+          <div>
+            <strong>Campaign &amp; Audience Analytics</strong>
+            <p><strong>Reason:</strong> Helps measure dashboard performance, audience clustering metrics, and engagement reporting usage.</p>
+          </div>
+          <label class="switch" aria-label="Toggle campaign and audience analytics">
+            <input type="checkbox" id="permAnalytics" {{ 'checked' if (not has_consent or current_consent.analytics) }}>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="purpose-item">
+          <div>
+            <strong>Interface &amp; Filter Personalization</strong>
+            <p><strong>Reason:</strong> Remembers your Light/Dark theme, saved brand/platform filters, and NLP classifier preferences across sessions.</p>
+          </div>
+          <label class="switch" aria-label="Toggle interface personalization">
+            <input type="checkbox" id="permPersonalization" {{ 'checked' if (not has_consent or current_consent.personalization) }}>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="purpose-item">
+          <div>
+            <strong>Diagnostics &amp; Research Telemetry</strong>
+            <p><strong>Reason:</strong> Supports anomaly detection evaluation, budget optimizer benchmarks, and SQL console stability diagnostics.</p>
+          </div>
+          <label class="switch" aria-label="Toggle diagnostics and research telemetry">
+            <input type="checkbox" id="permDiagnostics" {{ 'checked' if (current_consent and current_consent.diagnostics) }}>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="consent-purposes-foot">
+        <span class="small muted">Your choice and reason are stored securely in your account settings and audit log.</span>
+        <button type="button" class="btn primary" data-consent-action="custom">{{ icon('check') }} Save Custom Preferences</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<button
+  type="button"
+  class="consent-float-btn{{ '' if has_consent else ' hidden' }}"
+  id="consentFloatBtn"
+  data-open-consent
+  title="Manage Privacy Permissions & Reason"
+  aria-label="Manage Privacy Preferences"
+>
+  {{ icon('shield') }}<span>Privacy Preferences</span>
+</button>
+
+<!-- Mobile Bottom Navigation Bar -->
+<nav class="mobile-bottom-nav noprint" aria-label="Mobile quick navigation">
+  <a href="{{ url_for('dashboard') }}" class="{{ 'active' if page=='dashboard' }}">{{ icon('home') }}<span>Home</span></a>
+  <a href="{{ url_for('audience') }}" class="{{ 'active' if page=='audience' }}">{{ icon('audience') }}<span>Audience</span></a>
+  <a href="{{ url_for('ad_budget') }}" class="{{ 'active' if page=='budget' }}">{{ icon('chart') }}<span>Budget</span></a>
+  <a href="{{ url_for('analyze_page') }}" class="{{ 'active' if page=='analyze' }}">{{ icon('try') }}<span>NLP</span></a>
+  <button type="button" data-open-menu aria-label="Open full navigation menu">{{ icon('menu') }}<span>More</span></button>
+</nav>
+{% endif %}
+
 <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% block scripts %}{% endblock %}

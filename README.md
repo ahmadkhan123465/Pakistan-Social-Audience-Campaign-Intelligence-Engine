@@ -1,3 +1,13 @@
+---
+title: Campaign Intelligence Engine
+emoji: 📊
+colorFrom: green
+colorTo: yellow
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 📊 Pakistan Social Audience & Campaign Intelligence Engine (Project 3)   
 
 **Author:** Kashif Hafeez  

@@ -90,7 +90,7 @@
     </p>
   </div>
 
-  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px;">
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 18px;">
     {% for t in tables %}
     <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
@@ -142,6 +142,12 @@ document.getElementById('exampleSelect').addEventListener('change', function(e) 
     document.getElementById('sqlInput').value = e.target.value;
   }
 });
+document.getElementById('sqlInput').addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    executeSql();
+  }
+});
 
 async function executeSql() {
   const sql = document.getElementById('sqlInput').value.trim();
@@ -161,16 +167,20 @@ async function executeSql() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sql })
     });
+    if (res.status === 401) {
+      window.location.href = '/login?next=/database';
+      return;
+    }
 
     const data = await res.json();
     if (!res.ok) {
       statusEl.innerText = "❌ " + (data.error || "Query failed");
-      statusEl.style.color = "#dc2626";
+      statusEl.style.color = "var(--bad)";
       return;
     }
 
-    statusEl.innerText = `✅ Query executed successfully. ${data.rows.length} rows returned.`;
-    statusEl.style.color = "#059669";
+    statusEl.innerText = `✅ Query executed successfully. ${data.rows.length} rows returned.${data.truncated ? ' (capped at 500)' : ''}`;
+    statusEl.style.color = "var(--good)";
 
     // Build Table
     thead.innerHTML = "";

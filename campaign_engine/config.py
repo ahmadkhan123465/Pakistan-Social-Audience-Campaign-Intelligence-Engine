@@ -3,8 +3,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DB_PATH = DATA_DIR / "campaign.db"
+AUTH_DB_PATH = DATA_DIR / "auth.db"
+SECRET_KEY_PATH = DATA_DIR / ".secret_key"
 MODEL_PATH = DATA_DIR / "segment_model.joblib"
 TRUTH_PATH = DATA_DIR / "generator_ground_truth.csv"
+
+AUTH_LOCKOUT_THRESHOLD = 5
+AUTH_LOCKOUT_MINUTES = 5
+CAPTCHA_TTL_SECONDS = 300
 
 COLLECTION_DATE = "2026-11-15"   # date the (simulated) data was "collected"
 SEED = 42

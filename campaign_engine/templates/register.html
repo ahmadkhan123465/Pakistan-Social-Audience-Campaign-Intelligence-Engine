@@ -1,0 +1,96 @@
+{% extends 'auth_base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Create Account{% endblock %}
+
+{% block auth_body %}
+<div class="auth-card-head">
+  <h2>Create your account</h2>
+  <p>Register an analyst profile to access dashboards, SQL queries, and NLP tools.</p>
+</div>
+
+<form method="post" action="{{ url_for('register') }}" autocomplete="on" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="field-row">
+    <div class="field">
+      <label for="full_name">Full Name</label>
+      <div class="input-wrap">
+        <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0116 0"/></svg>
+        <input id="full_name" name="full_name" type="text" value="{{ form.full_name }}" placeholder="Ayesha Khan" required autofocus autocomplete="name">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="username">Username</label>
+      <div class="input-wrap">
+        <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 12a4 4 0 11-8 0 4 4 0 018 0z"/><path d="M16 12v1.5a2.5 2.5 0 005 0V12a9 9 0 10-3.5 7.1"/></svg>
+        <input id="username" name="username" type="text" value="{{ form.username }}" placeholder="ayesha.k" required autocomplete="username">
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="email">Work Email</label>
+    <div class="input-wrap">
+      <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+      <input id="email" name="email" type="email" value="{{ form.email }}" placeholder="ayesha@company.pk" required autocomplete="email">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="reg_password">Password</label>
+    <div class="input-wrap">
+      <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+      <input id="reg_password" name="password" type="password" placeholder="Create a strong password" required autocomplete="new-password" data-pw-meter="regPwMeter">
+      <button type="button" class="pw-toggle" data-toggle-pw aria-label="Show password">
+        <span data-eye-on>{{ icon('eye') }}</span>
+        <span data-eye-off style="display:none">{{ icon('eye-off') }}</span>
+      </button>
+    </div>
+    <div class="pw-meter" id="regPwMeter">
+      <div class="pw-bars" data-score="0"><i></i><i></i><i></i><i></i></div>
+      <div class="pw-rules">
+        <span data-rule="len">8+ chars</span>
+        <span data-rule="upper">Uppercase</span>
+        <span data-rule="lower">Lowercase</span>
+        <span data-rule="num">Number</span>
+        <span data-rule="spec">Symbol</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="confirm_password">Confirm Password</label>
+    <div class="input-wrap">
+      <svg class="input-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+      <input id="confirm_password" name="confirm_password" type="password" placeholder="Re-enter password" required autocomplete="new-password">
+      <button type="button" class="pw-toggle" data-toggle-pw aria-label="Show password">
+        <span data-eye-on>{{ icon('eye') }}</span>
+        <span data-eye-off style="display:none">{{ icon('eye-off') }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="captcha-box" data-captcha-box data-mode="text">
+    <div class="captcha-head">
+      <span class="captcha-head-title">{{ icon('shield') }} Human Verification</span>
+      <div class="captcha-modes" role="group" aria-label="CAPTCHA challenge type">
+        <button type="button" class="captcha-mode-btn active" data-captcha-mode="text">Text</button>
+        <button type="button" class="captcha-mode-btn" data-captcha-mode="math">Math</button>
+      </div>
+    </div>
+    <div class="captcha-row">
+      <div class="captcha-img-wrap">
+        <img src="{{ url_for('captcha_svg', mode='text', t=captcha_nonce) }}" data-captcha-img alt="Security CAPTCHA code">
+      </div>
+      <button type="button" class="captcha-refresh" data-captcha-refresh title="Generate a new CAPTCHA" aria-label="Refresh CAPTCHA">
+        {{ icon('refresh') }}
+      </button>
+    </div>
+    <input id="captcha" name="captcha" type="text" class="captcha-input" placeholder="Type the 6 characters shown above" required autocomplete="off" spellcheck="false" maxlength="12" aria-label="CAPTCHA verification answer">
+  </div>
+
+  <button type="submit" class="btn primary lg block">{{ icon('user') }} Create Analyst Account</button>
+  <p class="small muted" style="text-align:center;margin:14px 0 0">Already registered? <a href="{{ url_for('login') }}">Sign in instead</a></p>
+</form>
+{% endblock %}
